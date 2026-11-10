@@ -985,6 +985,10 @@ gap:12px;align-items:center;border:1px solid var(--line);border-radius:14px;back
   body.land #fvHud .meter.infield{right:116px;height:20px;bottom:12px;}
   body.land #fvHud .fh-ch{font-size:11px;}
   body.land #fvHud .fh-menu{width:44px;height:44px;}
+  #ballSh{position:absolute;transform:translate(-50%,-50%);border-radius:50%;background:radial-gradient(closest-side,rgba(0,0,0,.55),rgba(0,0,0,0));pointer-events:none;}
+  #tmRing{position:absolute;pointer-events:none;z-index:6;} #tmRing i{position:absolute;inset:0;border:3px solid rgba(255,216,115,.95);border-radius:10px;box-shadow:0 0 10px rgba(255,200,80,.6);transform-origin:center;}
+  #tmRing.now i{border-color:#fff;box-shadow:0 0 18px rgba(255,255,255,.9);} #tmRing b{position:absolute;left:50%;top:calc(100% + 8px);transform:translateX(-50%);white-space:nowrap;font:900 13px 'Gothic A1',sans-serif;color:#fff;text-shadow:0 1px 3px #000;opacity:0;transition:opacity .15s;}
+  #tmRing.fb b{opacity:1;} #tmRing.good b{color:#7dff9e;} #tmRing.ok b{color:#ffd873;}
   #fvHud .fh-fs{position:absolute;right:6px;top:50px;width:38px;height:38px;border-radius:50%;border:1px solid rgba(255,255,255,.5);background:rgba(8,16,30,.72);display:flex;align-items:center;justify-content:center;padding:0;cursor:pointer;box-shadow:0 2px 8px rgba(0,0,0,.4);z-index:3;}
   #fvHud .fh-fs.on{border-color:#ffd873;} body.land #fvHud .fh-fs{width:44px;height:44px;top:56px;}
   #fvHud .fh-fs:active,#fvHud .fh-menu:active{transform:scale(.92);}
@@ -5334,15 +5338,16 @@ function swingResult(cur,B,t){
 function swingResult0(cur,B,t){
   B=effB(B);
   const Q=pitchQ(cur.P,cur.pt), P={g:cur.g+Q.dg,velo:cur.velo+Q.feel}, inZone=cur.inZone;
-  const w=contactW(B.contact)*(1-Q.dec*0.12), e=Math.abs(t-IDEAL);   // 디셉션: 공이 늦게 보여 정타 범위가 좁아짐
-  const whiff=clamp((0.15+P.g*0.018+Math.max(0,P.velo-140)*0.005+((cur.stuff||6)-6)*0.015+Q.whiff-B.contact*0.014+(inZone?0:0.22)-(!inZone&&tcHas(B,'hREV')?0.2:0))*(cur.peek?0.4:1),0.03,0.8);
+  const ST=cur.sw||'level', pv=G&&G.lastPitchUV?G.lastPitchUV[1]:.5, low=pv>.66, high=pv<.33, match=(ST==='upper'&&low)||(ST==='down'&&high)?.05:(ST==='upper'&&high)||(ST==='down'&&low)?-.04:0;   // 스윙 종류와 공 높이 궁합
+  const w=contactW(B.contact)*(1-Q.dec*0.12)*1.15*(ST==='upper'?.9:ST==='down'?1.1:1), e=Math.abs(t-IDEAL);   // 디셉션: 공이 늦게 보여 정타 범위가 좁아짐 / 정타 범위 전체 15% 넓힘 (적응 쉽게)
+  const whiff=clamp((0.15+P.g*0.018+Math.max(0,P.velo-140)*0.005+((cur.stuff||6)-6)*0.015+Q.whiff-B.contact*0.014+(inZone?0:0.22)-(!inZone&&tcHas(B,'hREV')?0.2:0)+(ST==='upper'?.03:ST==='down'?-.03:0))*(cur.peek?0.4:1),0.03,0.8);
   if(e>w*1.8||Math.random()<whiff) return {k:'whiff', early:t<IDEAL};
   if(e>w) return Math.random()<0.7?{k:'foul'}:{k:'out',txt:t<IDEAL?'타이밍이 빨라 땅볼':'밀린 타구 뜬공'};
   const q=1-e/w;
-  const h=tcHitBonus(B,cur)-((cur.P&&cur.P.tcWeak)||0)-(tcHas(cur.P,'pDARK')?0.15:0)-(tcHas(cur.P,'pCENTER')&&inZone&&cur.zone===4?0.2:0)+(G&&G.hr?hrSolid(G.hr.stage):0)+q*0.35+(B.contact-5)*0.018-(P.g-5)*0.016-Q.gb+(inZone?0.03:-0.15)+Math.random()*0.62;
+  const h=tcHitBonus(B,cur)-((cur.P&&cur.P.tcWeak)||0)-(tcHas(cur.P,'pDARK')?0.15:0)-(tcHas(cur.P,'pCENTER')&&inZone&&cur.zone===4?0.2:0)+(G&&G.hr?hrSolid(G.hr.stage):0)+q*0.35+(B.contact-5)*0.018-(P.g-5)*0.016-Q.gb+(inZone?0.03:-0.15)+match+Math.random()*0.62;
   if(h<0.42) return (G.strikes<2&&Math.random()<0.55)?{k:'foul'}:{k:'out',txt:'빗맞은 범타'};
-  const d=hitDist(B.power,q,P.g)+(G&&G.hr?G.hr.bonus:0);   // 홈런 레이스: 배팅볼이라 더 멀리
-  if(h<0.67){ return {k:'out',d,txt:pick(['잘 맞았지만 정면 땅볼','뜬공 아웃','라인드라이브 아웃'])}; }
+  const d=(hitDist(B.power,q,P.g)+(G&&G.hr?G.hr.bonus:0))*(ST==='upper'?1.06:ST==='down'?.9:1);   // 홈런 레이스: 배팅볼이라 더 멀리 / 어퍼는 멀리, 다운은 짧게
+  if(h<0.67){ return {k:'out',d,txt:pick(ST==='upper'?['뜬공 아웃','뜬공 아웃','라인드라이브 아웃']:ST==='down'?['잘 맞았지만 정면 땅볼','잘 맞았지만 정면 땅볼','라인드라이브 아웃']:['잘 맞았지만 정면 땅볼','뜬공 아웃','라인드라이브 아웃'])}; }
   if(d>=fenceDist()) return {k:'hit',n:4,d};
   if(h>0.9) return {k:'hit',d,n:(Math.random()<(0.1+Math.max(0,(B.spd||4)-5)*0.03)*armFactor())?3:2};
   return {k:'hit',n:1,d};
@@ -5379,18 +5384,55 @@ function aiThrow(){
     return cur.inZone?evStrike('스트라이크! (루킹)','STRIKE'):evBall();
   });
 }
-function doSwing(){
+function doSwing(type,tDown){
   if(!G||G.over||G.top||G.phase!=='flight'||G.cur.t!==null)return;
-  G.cur.t=(performance.now()-G._t0)/G._T;
+  G.cur.t=((tDown&&tDown<=performance.now()?tDown:performance.now())-G._t0)/G._T; G.cur.sw=SW_NAME[type]?type:'level';   // 타이밍은 손가락이 닿은 순간 기준
   const sb=document.getElementById('btnSwing'); sb.disabled=true; sb.textContent='스윙!';
   const B=curBatter(); G.cur.res=swingResult(G.cur,B,G.cur.t);   // 스윙 순간에 결과를 정해 배트 궤적에 반영
+  swFeedback(G.cur.t,B,G.cur.sw);
   const sw={B,kind:swingKind(G.cur.res),t:G.cur.t,dir:G.cur.res.dir,line:G.cur.res.line}; G._swingAt=performance.now();
   // 바로 휘두르는 모습: 누른 순간부터 배트가 돌아감
   animateSwing(Object.assign(sw,{t:G.cur.t+0.08}));
 }
-document.getElementById('btnSwing').onclick=doSwing;
-document.getElementById('fieldView').addEventListener('pointerdown',()=>{ if(G&&!G.top)doSwing(); });
-document.addEventListener('keydown',e=>{ if(e.code==='Space'&&screens.match.classList.contains('active')){ e.preventDefault(); if(G&&!G.top)doSwing(); else document.getElementById('btnPitch').click(); } });
+/* 스윙 종류: 스윙 버튼(또는 화면)을 누른 채 손가락을 위로 밀면 어퍼, 옆으로 밀거나 그냥 누르면 레벨, 아래로 밀면 다운
+   어퍼: 낮은 공에 강하고 타구가 뜸(비거리 +6%, 정타 범위 -10%) / 레벨: 기본 / 다운: 높은 공에 강하고 땅볼·컨택 위주(정타 범위 +10%, 비거리 -10%) */
+const SW_NAME={upper:'어퍼 스윙',level:'레벨 스윙',down:'다운 스윙'};
+let SWG=null;
+function swDown(e){ if(!G||G.top||G.over||G.phase!=='flight'||(G.cur&&G.cur.t!=null)) return; if(SWG) return;
+  SWG={x:e.clientX,y:e.clientY,t:performance.now(),id:e.pointerId}; SWG.to=setTimeout(()=>swFire('level'),120); try{ sfx('whoosh'); buzz(15); }catch(e2){} }
+function swMove(e){ if(!SWG||e.pointerId!==SWG.id) return; let dx=e.clientX-SWG.x, dy=e.clientY-SWG.y; if(Math.hypot(dx,dy)<12) return;
+  if(document.body.classList.contains('rot')){ const t=dx; dx=dy; dy=-t; }   // 가로로 돌린 화면: 보이는 방향 기준
+  const ang=Math.atan2(-dy,Math.abs(dx))*180/Math.PI; swFire(ang>30?'upper':ang<-30?'down':'level'); }
+function swFire(type){ const S=SWG; SWG=null; if(!S) return; clearTimeout(S.to); doSwing(type,S.t); }
+window.addEventListener('pointermove',swMove,{passive:true}); window.addEventListener('pointerup',()=>{ if(SWG) swFire('level'); }); window.addEventListener('pointercancel',()=>{ if(SWG) swFire('level'); });
+document.getElementById('btnSwing').addEventListener('pointerdown',e=>{ e.preventDefault(); swDown(e); });
+document.getElementById('fieldView').addEventListener('pointerdown',e=>{ if(G&&!G.top) swDown(e); });
+document.addEventListener('keydown',e=>{ if(!screens.match.classList.contains('active')) return; const k=e.code==='Space'?'level':e.code==='ArrowUp'?'upper':e.code==='ArrowDown'?'down':null; if(!k) return;
+  e.preventDefault(); if(G&&!G.top) doSwing(k); else if(e.code==='Space') document.getElementById('btnPitch').click(); });   // 키보드: 스페이스 레벨, 위 화살표 어퍼, 아래 화살표 다운
+/* 스윙 직후 타이밍 알림: 얼마나 빠르고 늦었는지 ms로 */
+/* 타이밍 링: 투수 손에서 공이 떠나는 순간 존 바깥에 크게 나타나 '정타 순간(IDEAL)'에 정확히 존 크기로 줄어듦. 링이 존과 겹칠 때 치면 정타 */
+/* 투구 거리: 릴리스(마운드 - 익스텐션)에서 홈플레이트까지 남은 거리(m). pp = 0(릴리스) ~ 1(홈) */
+function pitchDist(pp,P){ let ext=1.8; try{ ext=pitchMetrics(P).ext||1.8; }catch(e){} return Math.max(0,(18.44-ext)*(1-Math.max(0,Math.min(1,pp)))); }
+/* 원근 크기: 카메라(포수 뒤 약 2.3m, 또는 투수 뒤 약 3m)에서 공까지 거리에 반비례. 우리 팀 타격일 때 홈 앞 크기를 30% 키움 */
+function pitchBallSize(dM,P,PV,FS){ if(PV){ let ext=1.8; try{ ext=pitchMetrics(P).ext||1.8; }catch(e){} const fromCam=3+(18.44-ext-dM); return Math.max(2.4,8.2*3/fromCam)*FS; }
+  const near=(G&&!G.top?13.5:10.5), camBack=2.3; return Math.max(2.2,near*camBack/(dM+camBack))*FS; }
+/* 공 그림자: 공이 지나가는 자리의 땅(3D 카메라로 계산)에 타원. 공과 그림자 사이가 점점 벌어지며 다가오는 거리감 */
+function ballShadow(ball,x,dM,size){ try{ if(!SC.cam||!ball||!ball.parentNode) return; let sh=document.getElementById('ballSh');
+  if(!sh){ sh=document.createElement('div'); sh.id='ballSh'; ball.parentNode.insertBefore(sh,ball); }
+  const q=SC.cam.p([HL_PC[0],0,HL_PC[2]-dM*HL_M]); if(!q){ sh.style.display='none'; return; }
+  sh.style.display=''; sh.style.left=x+'px'; sh.style.top=q[1]+'px'; sh.style.width=(size*1.25).toFixed(1)+'px'; sh.style.height=(size*.4).toFixed(1)+'px'; }catch(e){} }
+function tmRingStart(g){ try{ const fv=document.getElementById('fieldView'); let el=document.getElementById('tmRing'); if(el) el.remove();
+  el=document.createElement('div'); el.id='tmRing'; el.innerHTML='<i></i><b></b>'; fv.appendChild(el);
+  const pad=6, w=g.zw+pad*2, h=g.zh+pad*2; Object.assign(el.style,{left:(g.zx-pad)+'px',top:(g.zy-pad)+'px',width:w+'px',height:h+'px'});
+  const ring=el.querySelector('i'), T=g.T, t0=g.t0, hit=IDEAL*T;
+  const step=()=>{ if(!el.isConnected) return; const r=performance.now()-t0, p=Math.min(1,r/hit), sc=1+1.5*(1-p)*(1-p*.25);
+    ring.style.transform=`scale(${sc.toFixed(3)})`; ring.style.opacity=(r<hit?.35+.65*p:Math.max(0,1-(r-hit)/260)).toFixed(2); el.classList.toggle('now',Math.abs(r-hit)<45);
+    if(r<T+900) requestAnimationFrame(step); else el.remove(); };
+  requestAnimationFrame(step); }catch(e){} }
+function swFeedback(t,B,type){ try{ const w=contactW(B.contact)*1.15*(type==='upper'?.9:type==='down'?1.1:1), e=t-IDEAL, ms=Math.round(e*G._T);
+  const txt=Math.abs(e)<=w*.35?'정타!':Math.abs(e)<=w?(e<0?'조금 빠름':'조금 늦음'):(e<0?'빠름':'늦음');   // 몇 ms인지는 보여 주지 않음
+  const el=document.getElementById('tmRing'); if(el){ const lb=el.querySelector('b'); lb.textContent=`${SW_NAME[type]||''} · ${txt}`; lb.style.opacity='1'; el.classList.add('fb'); el.classList.toggle('good',Math.abs(e)<=w*.35); el.classList.toggle('ok',Math.abs(e)>w*.35&&Math.abs(e)<=w); }
+  fvTick(`${SW_NAME[type]||''} · ${txt}`); }catch(e){} }
 
 /* --- 투구 궤적 / 스윙 궤적 --- */
 const ARM_OVER=new Set(['최동월','니퍼드','류현신','문동수','정민청','소자','김진후','선동영','박찬오']);
@@ -5656,8 +5698,10 @@ function flyPitch(o,done,rel){
   const t0=performance.now(); let fin=false;
   if(o.track){ G._t0=t0; G._T=T; }
   const geo=G._geo={zx,zy,zw,zh,tx,ty,T,t0,col,hit:false}; SC.hopAt=t0+T*.92; G.lastPitchUV=[PV?1-(tx-zx)/zw:(tx-zx)/zw,(ty-zy)/zh]; SC.cPitch={u:G.lastPitchUV[0],v:G.lastPitchUV[1],at:t0+T,t0};   // 삼진 리플레이에서 실제 들어간 자리 그대로
+  if(o.track&&G&&!G.top&&!G.skip&&!G.pvpWatch) tmRingStart(geo);   // 타격: 맞히는 순간에 맞춰 줄어드는 타이밍 링
   if(o.swing) setTimeout(()=>{ if(G&&!G.over) animateSwing(o.swing); }, Math.max(0,(o.swing.t-0.08)*T));
   setTimeout(()=>{ fin=true;
+      { const sh=document.getElementById('ballSh'); if(sh) sh.style.display='none'; }
       if(!geo.hit){ ball.classList.add('pop'); ball.style.transform='translate(-50%,-50%) scale(1.25)'; ball.style.opacity='0';   // 미트에 '팡'
         setTimeout(()=>{ if(G._pid===pid) ball.style.display='none'; },320); } else ball.style.display='none';
       trailTo(1); const c=pos(1); sv.appendChild(svgEl('circle',{cx:c[0],cy:c[1],r:PV?2.6:4.5,fill:'none',stroke:col,'stroke-width':PV?1.4:2}));
@@ -5666,14 +5710,15 @@ function flyPitch(o,done,rel){
   const frame=now=>{
     if(fin) return;
     const x0=Math.min((now-t0)/T,1), pp=x0*.45+Math.pow(x0,live)*.55, [x,y]=pos(pp);
-    const size=PV?(8.2-5.0*Math.pow(pp,.8))*FS:(2.2+8.0*Math.pow(pp,2.1))*FS;                  // 공을 작게: 멀리선 점처럼, 홈 앞에서만 커짐                       // 멀리서 작게 → 가까워질수록 크게
+    const dM=pitchDist(pp,P), size=pitchBallSize(dM,P,PV,FS);   // 실제 남은 거리(m)로 원근 크기: 멀리선 작게, 가까워질수록 빠르게 커짐 (우리 팀 타격 땐 더 크게)
+    ballShadow(ball,x,dM,size,P,op0=>op0);
     rot+=spin;
     const hideF=0.02+Qv.dec*0.13, br=o.pt.short!=='포심'&&o.pt.short!=='투심'&&Qv.dec>0.45;
     ball.style.visibility=pp<hideF?'hidden':'visible';                    // 디셉션: 몸에 숨어 있다가 늦게 보임
     let op=pp<hideF+0.06?Math.max(0,(pp-hideF)/0.06):1;                    // 나타날 때 서서히
     if(br&&pp>0.34&&pp<0.56) op*=0.12+0.88*Math.abs(pp-0.45)/0.11;        // 좋은 디셉션 변화구: 날아오다 사라졌다 다시 보임
     if(FFv.vanish===o.pt.short&&pp>0.72&&pp<0.9) op*=0.15+0.85*Math.abs(pp-0.81)/0.09;   // 폰제 킥 체인지업: 홈 앞에서 사라지듯
-    ball.style.opacity=op.toFixed(2);
+    ball.style.opacity=op.toFixed(2); { const sh=document.getElementById('ballSh'); if(sh) sh.style.opacity=(op*.55).toFixed(2); }
     ball.style.left=x+'px'; ball.style.top=y+'px'; ball.style.width=size+'px'; ball.style.height=size+'px'; ball.style.fontSize=size+'px';
     ball.style.transform=`translate(-50%,-50%) rotate(${rot}deg)`;
     ball.style.boxShadow=`0 ${(2+size*.15).toFixed(1)}px ${(4+size*.3).toFixed(1)}px rgba(0,0,0,.45),0 0 ${(size*.55).toFixed(1)}px ${col}`;
@@ -8219,7 +8264,7 @@ function fvHudSync(){ try{ fhPauseSync(); const fv=document.getElementById('fiel
     { const mb=document.getElementById('fhMenu'); mb.onclick=null; mb.onpointerdown=e=>{ e.preventDefault(); e.stopPropagation(); FH.menu=!FH.menu; sfx('menu'); fvHudSync(); }; }   // 누르는 순간 반응 (자동 진행 중 화면이 자주 다시 그려져도 클릭이 사라지지 않게)
     if(FH.pop!=null){ const pb=h.querySelectorAll('.fh-pt')[FH.pop]; if(pb) pb.classList.add('pop'); }
     const th=document.getElementById('fhThrow'); if(th) th.onclick=()=>document.getElementById('btnPitch').click();
-    const swb=document.getElementById('fhSwing'); if(swb) swb.onpointerdown=e=>{ e.stopPropagation(); e.preventDefault(); if(!swb.disabled){ sfx('whoosh'); buzz(15); } doSwing(); };
+    const swb=document.getElementById('fhSwing'); if(swb) swb.onpointerdown=e=>{ e.stopPropagation(); e.preventDefault(); swDown(e); };   // 누르고 위/옆/아래로 밀면 어퍼/레벨/다운
     fvHudState(); fvTick(); }catch(e){ console.error(e); } }
 function fvTick(txt){ if(txt!=null){ FH.tick=String(txt).replace(/<[^>]*>/g,''); FH.tickAt=performance.now(); } const e=document.getElementById('fhTick'); if(!e) return;
   const live=FH.tick&&performance.now()-FH.tickAt<4500; e.textContent=live?FH.tick:''; e.classList.toggle('on',!!live); if(live){ clearTimeout(FH.tt); FH.tt=setTimeout(()=>fvTick(),4600-(performance.now()-FH.tickAt)); } }
@@ -8319,8 +8364,9 @@ function fpPlay(info,done){ const M=HL_M, PC=HL_PC, gl=SC.S.gl, fv=document.getE
   // 송구 목표: 아웃(땅볼·내야 라인)은 1루, 뜬공은 내야로 돌려줌, 안타는 2루
   const B1=V3.add(home,V3.mul([Math.SQRT1_2,0,-Math.SQRT1_2],27.43*M)), B2=[PC[0],0,PC[2]-38.8*M];
   const B3p=V3.add(home,V3.mul([-Math.SQRT1_2,0,-Math.SQRT1_2],27.43*M)), BSP=[null,B1,B2,B3p,home];
-  let toFirst=(k==='gb'||k==='ihit'||(k==='ld'&&inf))&&slot!=='1B', tgtBase=toFirst?B1:B2;
-  let recvSlot=toFirst?'1B':(slot==='SS'||slot==='3B'||sd<0?'SS':'2B');
+  const gb1=(k==='gb'||k==='ihit'||(k==='ld'&&inf));
+  let toFirst=gb1, tgtBase=toFirst?B1:B2;
+  let recvSlot=toFirst?(slot==='1B'?'2B':'1B'):(slot==='SS'||slot==='3B'||sd<0?'SS':'2B');   // 1루수가 잡은 땅볼: 2루수가 1루 베이스 커버 (전에는 2루로 던지던 버그)
   if(PL.t1){ tgtBase=BSP[PL.t1.base]; recvSlot=PL.t1.slot; toFirst=PL.t1.base===1; }   // 병살(2루)·태그업·보살(3루, 홈)
   const dp=!!PL.t2;
   const tThrow0=tc+.42, thrD=V3.len(V3.sub(tgtBase,catchG)), direct=(PL.arm||5)>=FP_SSR||thrD<50*M, flyT=Math.max(.35,thrD/(((PL.arm||5)>=FP_SSR?40:31)*M)), tEnd0=tThrow0+.25+flyT+.55, tEnd=Math.max(tEnd0+.6,k==='hit2'?3.9:k==='hit3'?4.7:0,dp?tThrow0+.25+flyT+.48+Math.max(.3,27.43/32)+1.0:0);
@@ -8358,12 +8404,15 @@ function fpPlay(info,done){ const M=HL_M, PC=HL_PC, gl=SC.S.gl, fv=document.getE
   const glovePt=kk=>V3.add(kk.aG.hd,V3.mul(V3.nrm(V3.sub(kk.aG.hd,kk.aG.el)),3.2));
   // 받는 선수: 베이스 위에서 글러브를 내밈
   const recvPos=V3.add(tgtBase,V3.mul(V3.nrm(V3.sub(catchG,tgtBase)),.5*M)), recvFace=V3.nrm(V3.sub(catchG,recvPos));
-  let rSkel=t=>{ const st={o:basePose(recvPos,recvFace,-43,10,toFirst?14:9),arm:t>tThrow0+.25+flyT+.3?'high':t>tThrow0-.2?'recv':'ready'}; if(toFirst&&t>tThrow0){ st.o.fF=V3.add(st.o.fF,V3.mul(recvFace,16)); } return armsSet(bSkeleton(st.o,bpR),st,bpR); };
+  const onBag=(o,base,u)=>{ if(u<=0) return; const bag=[base[0],-1.6,base[2]]; o.fB=V3.add(V3.mul(o.fB,1-u),V3.mul(bag,u)); };   // 포스 아웃: 뒷발로 베이스를 밟음
+  const cov1=toFirst&&slot==='1B'&&recvSlot==='2B', cvStart=cov1?at(SPOS['2B'][0],SPOS['2B'][1]):recvPos, rPosAt=t=>cov1?V3.add(V3.mul(cvStart,1-hlSm(t/Math.max(.3,tThrow0-.1))),V3.mul(recvPos,hlSm(t/Math.max(.3,tThrow0-.1)))):recvPos;   // 2루수가 1루로 달려가 커버
+  let rSkel=t=>{ const st={o:basePose(rPosAt(t),recvFace,-43,10,toFirst?14:9),arm:t>tThrow0+.25+flyT+.3?'high':t>tThrow0-.2?'recv':'ready'}; if(toFirst&&t>tThrow0){ st.o.fF=V3.add(st.o.fF,V3.mul(recvFace,16)); }
+    if(toFirst||dp) onBag(st.o,tgtBase,hlSm((t-(tThrow0-.35))/.3)); return armsSet(bSkeleton(st.o,bpR),st,bpR); };
   const tR1=tThrow0+.25+flyT, throwPose=(pos,dir,u)=>{ const o=basePose(pos,dir,-42,u<.6?6:18,10); o.hy-=u<.6?60*hlSm(u/.6):60-90*hlSm((u-.6)/.4); o.sy=o.hy-(u<.6?25:-10*hlSm((u-.6)/.4)); const sN=[dir[2],0,-dir[0]]; o.fF=V3.add(o.fF,V3.mul(dir,u>.5?14*hlSm((u-.5)/.3):0)); o.fB=V3.add(o.fB,V3.mul(sN,4)); return o; };
   const rSkel0=rSkel, recv2Pos=dp?V3.add(B1,V3.mul(V3.nrm(V3.sub(recvPos,B1)),.5*M)):null, thr2Dir=dp?V3.nrm(V3.sub(recv2Pos,recvPos)):null, tRel2=tR1+.08+.4, fly2=dp?Math.max(.3,V3.len(V3.sub(recv2Pos,recvPos))/(32*M)):0, tR2=tRel2+fly2;
   rSkel=t=>{ if(dp&&t>tR1+.08){ const u=Math.min(1,(t-tR1-.08)/.4); return armsSet(bSkeleton(throwPose(recvPos,thr2Dir,u),bpR),{arm:'throw',u},bpR); } return rSkel0(t); };   // 병살: 2루에서 받자마자 몸을 돌려 1루로
   const y1=dp?(L.find(p=>p.slot==='1B')||L[0]):null, TY={tex:SC.texF4||(SC.texF4=gl.createTexture())}, LY=dp?btLook(y1,fTeam,gl,TY):null, XY=dp?Object.assign({},LY.X,{bat:false,helmet:false,flipU:v=>v}):null, recv2Face=dp?V3.nrm(V3.sub(recvPos,recv2Pos)):null;
-  const ySkel=t=>{ const st={o:basePose(recv2Pos,recv2Face,-43,10,14),arm:t>tR2+.3?'high':t>tRel2-.2?'recv':'ready'}; if(t>tRel2) st.o.fF=V3.add(st.o.fF,V3.mul(recv2Face,16)); return armsSet(bSkeleton(st.o,LY.bp),st,LY.bp); };
+  const ySkel=t=>{ const st={o:basePose(recv2Pos,recv2Face,-43,10,14),arm:t>tR2+.3?'high':t>tRel2-.2?'recv':'ready'}; if(t>tRel2) st.o.fF=V3.add(st.o.fF,V3.mul(recv2Face,16)); onBag(st.o,B1,hlSm((t-(tRel2-.35))/.3)); return armsSet(bSkeleton(st.o,LY.bp),st,LY.bp); };
   const catchW=glovePt(fSkel(tc).k), recvW=glovePt(rSkel0(tR1)), recv2W=dp?glovePt(ySkel(tR2)):null;
   // 공 위치
   const c0=[PC[0]+6,-50,PC[2]-6];
@@ -8453,7 +8502,7 @@ function fpPlay(info,done){ const M=HL_M, PC=HL_PC, gl=SC.S.gl, fv=document.getE
       cf.setTransform(dpr,0,0,dpr,0,0); cf.clearRect(0,0,W,H);
       const pts=[]; for(let i=0;i<=14;i++){ const tt=t-.3*(1-i/14); if(tt<0) continue; if((tt<tc)!==(t<tc)) continue; const q=cam.p(ballAt(tt)); if(q) pts.push(q); }
       const q=cam.p(ball); if(q){ if(pts.length>1&&t<tc){ cf.beginPath(); pts.forEach((p,i)=>i?cf.lineTo(p[0],p[1]):cf.moveTo(p[0],p[1])); cf.strokeStyle='rgba(255,255,255,.45)'; cf.lineWidth=2; cf.lineCap='round'; cf.stroke(); }
-        const sh=cam.p([ball[0],0,ball[2]]); if(sh&&ball[1]<-6){ cf.fillStyle='rgba(0,0,0,.25)'; cf.beginPath(); cf.ellipse(sh[0],sh[1],3,1.4,0,0,Math.PI*2); cf.fill(); }
+        fpShadow(cf,cam,ball);
         cf.fillStyle='#fff'; cf.strokeStyle='rgba(0,0,0,.4)'; cf.lineWidth=1; cf.beginPath(); cf.arc(q[0],q[1],Math.max(2.4,cam.F*2.1/q[2]),0,Math.PI*2); cf.fill(); cf.stroke(); }
       MK.forEach(m=>{ const a=t-m.t; if(a>1.4) return; const q=cam.p(V3.add(m.pos,[0,-2.6*M,0])); if(!q) return; const sc=a<.15?.6+a/.15*.6:1.2-Math.min(.2,(a-.15)); cf.save(); cf.globalAlpha=Math.min(1,(1.4-a)/.4); cf.font=`italic 900 ${Math.round(26*sc)}px 'Gothic A1',sans-serif`; cf.textAlign='center'; cf.textBaseline='middle'; cf.lineWidth=5; cf.strokeStyle='rgba(0,0,0,.65)'; cf.strokeText(m.txt,q[0],q[1]); cf.fillStyle=m.txt==='SAFE'?'#5fe08a':m.txt==='OUT'?'#ff5a4f':'#ffd23f'; cf.fillText(m.txt,q[0],q[1]); cf.restore(); });
       if(caught&&t<tc+.35){ const g=cam.p(catchW); if(g){ const u=(t-tc)/.35; cf.strokeStyle=`rgba(255,255,255,${1-u})`; cf.lineWidth=2; cf.beginPath(); cf.arc(g[0],g[1],6+u*18,0,Math.PI*2); cf.stroke(); } }
@@ -8465,6 +8514,9 @@ function fpPlay(info,done){ const M=HL_M, PC=HL_PC, gl=SC.S.gl, fv=document.getE
    o.type 'steal': 투수 릴리스 때 출발한 주자가 다음 베이스로 달리고, 포수가 일어나며 송구 -> 베이스 커버 수비수가 받아 태그 (주자는 슬라이딩)
    o.type 'pick' : 투수가 베이스 쪽으로 몸을 돌려 견제 (언더핸드는 사이드암 각도, 나머지는 쓰리쿼터) -> 리드하던 주자는 몸을 날려 귀루, 1루수(2루는 유격수)가 받아 태그
    o.k: 주자 베이스 (0=1루 주자, 1=2루 주자), o.out: 결과(미리 정해 둠), o.e0: 공이 포수에게 가는 동안 주자가 이미 뛴 시간(초) */
+/* 공 그림자: 공 바로 아래 땅에 타원. 높이 뜰수록 넓고 옅어짐 (공이 어디 떨어질지 읽기 쉽게) */
+function fpShadow(cf,cam,ball){ const g=cam.p([ball[0],0,ball[2]]); if(!g||g[2]<=0) return; const h=Math.max(0,-ball[1]), r=Math.max(1.6,cam.F*2.4/g[2])*(1+Math.min(2.5,h/180)), a=.34*Math.max(.18,1-h/(28*HL_M));
+  cf.save(); cf.fillStyle=`rgba(0,0,0,${a.toFixed(3)})`; cf.beginPath(); cf.ellipse(g[0],g[1],r,r*.42,0,0,Math.PI*2); cf.fill(); cf.restore(); }
 function rpEligible(){ return fpEligible(); }
 function rpPlay(o,done){ const M=HL_M, PC=HL_PC, gl=SC.S.gl, fv=document.getElementById('fieldView'); FP.busy=true; fv.classList.add('fping');
   let fin=false; const steal=o.type==='steal', k=o.k, OUT=!!o.out;
@@ -8580,7 +8632,7 @@ function rpPlay(o,done){ const M=HL_M, PC=HL_PC, gl=SC.S.gl, fv=document.getElem
       if(!rel&&t>=tRel){ rel=true; sfx('whoosh'); } if(!arr&&t>=tArr){ arr=true; sfx('mitt'); }
       if(!tg&&t>=Math.max(tTag,tSafe)){ tg=true; MKt=t; sfx(OUT?'out':'cheer'); }
       cf.setTransform(dpr,0,0,dpr,0,0); cf.clearRect(0,0,W,H);
-      const b=ballAt(t), q=cam.p(b); if(q){ if(t>tRel&&t<tArr){ cf.beginPath(); for(let i=0;i<=10;i++){ const tt=Math.max(tRel,t-.18*(1-i/10)), p=cam.p(ballAt(tt)); if(p) i?cf.lineTo(p[0],p[1]):cf.moveTo(p[0],p[1]); } cf.strokeStyle='rgba(255,255,255,.45)'; cf.lineWidth=2; cf.lineCap='round'; cf.stroke(); }
+      const b=ballAt(t), q=cam.p(b); fpShadow(cf,cam,b); if(q){ if(t>tRel&&t<tArr){ cf.beginPath(); for(let i=0;i<=10;i++){ const tt=Math.max(tRel,t-.18*(1-i/10)), p=cam.p(ballAt(tt)); if(p) i?cf.lineTo(p[0],p[1]):cf.moveTo(p[0],p[1]); } cf.strokeStyle='rgba(255,255,255,.45)'; cf.lineWidth=2; cf.lineCap='round'; cf.stroke(); }
         cf.fillStyle='#fff'; cf.strokeStyle='rgba(0,0,0,.4)'; cf.lineWidth=1; cf.beginPath(); cf.arc(q[0],q[1],Math.max(2.2,cam.F*2.1/q[2]),0,Math.PI*2); cf.fill(); cf.stroke(); }
       if(MKt!=null){ const a=t-MKt, txt=OUT?'OUT':'SAFE', qm=cam.p(V3.add(tbase,[0,-2.4*M,0])); if(qm&&a<1.3){ const sc=a<.15?.6+a/.15*.6:1.2-Math.min(.2,a-.15); cf.save(); cf.globalAlpha=Math.min(1,(1.3-a)/.4); cf.font=`italic 900 ${Math.round(28*sc)}px 'Gothic A1',sans-serif`; cf.textAlign='center'; cf.textBaseline='middle'; cf.lineWidth=5; cf.strokeStyle='rgba(0,0,0,.65)'; cf.strokeText(txt,qm[0],qm[1]); cf.fillStyle=OUT?'#ff5a4f':'#5fe08a'; cf.fillText(txt,qm[0],qm[1]); cf.restore(); } }
       if(t<.9){ cf.save(); cf.globalAlpha=Math.min(1,(.9-t)/.3); cf.font="900 15px 'Gothic A1',sans-serif"; cf.textAlign='left'; cf.fillStyle='#ffd873'; cf.strokeStyle='rgba(0,0,0,.6)'; cf.lineWidth=4; const lb=steal?`${k===0?'2루':'3루'} 도루!`:`${k===0?'1루':'2루'} 견제`; cf.strokeText(lb,12,24); cf.fillText(lb,12,24); cf.restore(); }
@@ -8761,7 +8813,8 @@ function animatePitch(o,done){
   if(G) G.lastLoc={inZone:!!o.inZone,chase:o.chase};   // 몸에 맞는 공 판정용 (마지막 공의 위치)
   const P=o.P||curPitcher(), slot=armSlot(P), arm=handOf(P)==='L'?1:-1;
   const FF=(typeof FORM!=='undefined'&&FORMY(P))||null;
-  const W=(G&&G.full?(FF?200:90):(o.fast?620:760))*(FF?(FF.quick?0.8:1.5):1)*(1-0.05*Math.max(-1,Math.min(1,((P.velo||143)-143)/12)));   // 투구 동작을 조금 느리게 (팔 각도가 잘 보이게)   // 특이폼은 천천히 보여 줌 (퀵 템포는 일부러 빠르게)
+  const setPos=!!(G&&G.bases&&G.bases.some(Boolean));   // 주자가 있으면 세트 포지션(퀵 모션): 와인드업 없이 바로 던져 투구 동작이 약 30% 짧음
+  const W=(G&&G.full?(FF?200:90):(o.fast?620:760))*(FF?(FF.quick?0.8:1.5):1)*(1-0.05*Math.max(-1,Math.min(1,((P.velo||143)-143)/12)))*(setPos?.7:1);   // 투구 동작을 조금 느리게 (팔 각도가 잘 보이게)   // 특이폼은 천천히 보여 줌 (퀵 템포는 일부러 빠르게)
   if(FF&&FF.note&&!(G&&G.skip)) formTag('★ 특이폼');
   try{ const BB=curBatter(); if(BB&&!(G&&(G.skip||G.full))){ const bp=batterProfile(BB); if(BFORM[BB.name]&&bp.note) bformTag('★ 특이폼',batSide(BB)==='L'||(batSide(BB)==='S'&&handOf(P)!=='L')); } }catch(e){}   // 타격 특이폼: 타자 쪽 위에   // 와인드업~릴리스 시간 (전체 자동은 짧게, 박종운처럼 빠른 템포는 짧게)
   playWindup(P,W,rel=>{ if(!G||G.over) return; flyPitch(o,done,rel); try{ if(G._geo&&!btSkip()) btRelease(G._geo.T); }catch(e){} if(o.onRelease) o.onRelease(); });
