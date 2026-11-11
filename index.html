@@ -1477,7 +1477,7 @@ gap:12px;align-items:center;border:1px solid var(--line);border-radius:14px;back
     <button class="btn ghost sm" id="btnNewOpp" style="margin:-8px 0 12px;">상대 팀 바꾸기</button>
     <div class="panel"><h3>이닝 수</h3><div class="chips" id="innPick"></div></div>
     <div class="panel"><h3>자동 경기 수 <small style="font-family:'Gothic A1';font-size:11px;">자동 경기를 누르면 이 수만큼 이어서 진행</small></h3>
-      <div class="runpick"><input type="range" id="runN" min="1" max="50" step="1" value="1"><b id="runNv">1경기</b></div>
+      <div class="runpick"><input type="range" id="runN" min="1" max="100" step="1" value="1"><b id="runNv">1경기</b></div>
       <div class="runticks"><span>1</span><span>5</span><span>10</span></div></div>
     <div class="panel"><h3>시너지</h3><div id="setupSyn"></div></div>
     <div class="panel"><h3>마운드</h3><div id="setupPitch" style="font-size:13px;"></div></div>
@@ -3468,12 +3468,24 @@ function imgAutoPass(){
     <g transform="translate(196 150)"><circle r="12" fill="#fff"/><path d="M-7 -8c3 4 3 12 0 16M7 -8c-3 4-3 12 0 16" stroke="#d8463c" stroke-width="1.6" fill="none"/></g>
     <text x="24" y="58" font-family="Arial Black,Arial" font-size="17" font-weight="900" fill="#bff5d6" letter-spacing="3">AUTO PLAY</text>
     <text x="22" y="118" font-family="Arial Black,Arial" font-size="62" font-weight="900" fill="url(#apGold)" stroke="#5a3d06" stroke-width="1.4">×100</text>
-    <text x="26" y="140" font-family="Arial" font-size="12.5" font-weight="900" fill="#d9ffe9" letter-spacing="1">100회 자동 플레이권</text>
-    <rect x="24" y="152" width="112" height="22" rx="11" fill="none" stroke="url(#apGold)" stroke-width="1.6"/><text x="80" y="167" font-family="Arial" font-size="10.5" font-weight="900" fill="#ffd873" text-anchor="middle" letter-spacing="1">INSTANT RESULT</text>
+    <text x="26" y="140" font-family="Arial" font-size="12.5" font-weight="900" fill="#d9ffe9" letter-spacing="1">100경기 스킵권</text>
+    <rect x="24" y="152" width="112" height="22" rx="11" fill="none" stroke="url(#apGold)" stroke-width="1.6"/><text x="80" y="167" font-family="Arial" font-size="10.5" font-weight="900" fill="#ffd873" text-anchor="middle" letter-spacing="1">100 WINS SKIP</text>
   </g>
   <path d="M14 8h292a8 8 0 0 1 8 8v54a14 14 0 0 0 0 28v76a8 8 0 0 1-8 8H14a8 8 0 0 1-8-8V98a14 14 0 0 0 0-28V16a8 8 0 0 1 8-8z" fill="none" stroke="url(#apGold)" stroke-width="3"/>
 </svg>`; }
 /* 100회 자동 플레이: 지금 팀 설정으로 9이닝 경기 100번을 바로 계산 (보상·스테이지 진행 그대로) */
+/* 100경기 스킵권: 경기를 하지 않고 100경기를 모두 승리로 처리 (승리 보상·시리즈 클리어 보너스·스테이지 진행) */
+function runSkipPass(n){
+  if(itemN('auto100')<1){ toast('100경기 스킵권이 없어요.'); return; }
+  addItem('auto100',-1); const st0=state.stage; let bp=0, clears=0;
+  for(let i=0;i<n;i++){ const SI=stageInfo(state.stage); let r=SI.win;
+    if(!state.series||state.series.stage!==state.stage) state.series={stage:state.stage,wins:0};
+    state.series.wins++; if(state.series.wins>=SERIES_WINS){ r+=SI.clear; clears++;
+      if(state.stage<STAGE_MAX){ state.stage++; state.bestStage=Math.max(state.bestStage||1,state.stage); } state.series={stage:state.stage,wins:0}; }
+    bp+=r; try{ qAdd('lg'); }catch(e){} }
+  state.bp+=bp; saveGame(); try{ renderHome(); }catch(e){}
+  toast(`100경기 스킵: ${n}승 처리 · +${fmt(bp)} BP`+(state.stage>st0?` · STAGE ${st0} → ${state.stage}`:'')+(clears?` (시리즈 ${clears}번 클리어)`:''));
+  go('bag'); }
 async function runBatch(n){
   if(itemN('auto100')<1){ toast('100회 자동 플레이권이 없어요.'); return; }
   addItem('auto100',-1); saveGame();
@@ -3493,9 +3505,9 @@ async function runBatch(n){
 const SHOP=[
   {id:'fa',name:'FA 진행권',price:300000,img:imgFAPass,desc:'FA 이적 1회를 이적료와 대가 선수 없이 진행해요. 원하는 구단 어디로든 옮길 수 있어요.'},
   {id:'legend',name:'희망 구단 레전드 뽑기권',price:50000,img:imgLegendPass,desc:'구단을 직접 골라, 그 구단 소속 레전드(L) 카드 1장을 뽑아요.'},
-  {id:'auto100',name:'100회 자동 플레이권',price:100000,img:imgAutoPass,desc:'쓰는 즉시 지금 팀 설정으로 9이닝 경기 100번이 끝난 것으로 계산돼요. 승패에 따른 BP 보상과 스테이지 진행도 그대로 받아요.'}
+  {id:'auto100',name:'100경기 스킵권',price:100000,img:imgAutoPass,desc:'쓰는 즉시 리그 모드 100경기를 모두 승리로 처리하고 넘어가요. 승리 BP, 시리즈 클리어 보너스, 스테이지 진행을 받아요.'}
 ];
-const ITEM_NAME={dpack:'1라운더팩',fa:'FA 진행권',legend:'희망 구단 레전드 뽑기권',auto100:'100회 자동 플레이권',
+const ITEM_NAME={dpack:'1라운더팩',fa:'FA 진행권',legend:'희망 구단 레전드 뽑기권',auto100:'100경기 스킵권',
   pk_F:'FA팩',pkc_P:'구단 선택 주장팩',pk_T:'타이틀 홀더팩',pk_R:'국가대표팩',pkc_S:'구단 선택 시그니처팩 (1차)',pkc_S2:'구단 선택 시그니처팩 (2차)',pk_N:'신인왕팩',pk_GN:'골든글러브팩',pk_V:'베테랑팩',pk_H:'외국인팩',pk_M:'MVP팩',pkm_K:'구종 지정 마스터+팩',pkc_L:'구단 선택 레전드팩',pk_L:'레전드팩',pkc_M:'구단 선택 MVP팩',pkc_H:'구단 선택 외국인팩',pk_P:'주장팩',pk_S:'시그니처팩 (1차)',pk_S2:'시그니처팩 (2차)',pk_K:'마스터+팩',pk_myL:'자팀 레전드팩'},
   PACK_ITEM={D:'dpack',F:'pk_F',P:'pk_P',T:'pk_T',R:'pk_R',S:'pk_S',S2:'pk_S2',N:'pk_N',GN:'pk_GN',V:'pk_V',H:'pk_H',K:'pk_K',M:'pk_M',L:'pk_L'};
 /* 팩 아이템: 어떤 팩인지, 열 때 구단(club)이나 구종(pitch)을 고르는지 */
@@ -3507,27 +3519,27 @@ const PICK={club:null,pitch:null};   // 아이템으로 열 때만 쓰는 구단
    보상 rw = 고를 수 있는 묶음들 [[묶음1], [묶음2]]. 묶음 = [{bp},{gem},{it,n}] */
 const Q_NICK=id=>{ const t=TEAMS.find(x=>x.id===(id==='키움'?'KIW':id)); return t?t.full.split(' ').pop():id; };
 const QREP=[
-  {id:'r_k',ic:'q_k',t:'삼진 3,000개',d:'내 투수진이 잡은 삼진 (리그 모드 · 1:1 대전)',st:'k',goal:3000,rw:[[{bp:200000}],[{it:'pkc_L',n:5}]]},
+  {id:'r_k',ic:'q_k',t:'삼진 3,000개',d:'내 투수진이 잡은 삼진 (리그 모드 · 1:1 대전)',st:'k',goal:3000,rw:[[{bp:200000}],[{it:'pkc_L',n:3}]]},
   {id:'r_out',ic:'q_out',t:'아웃 카운트 3,000개',d:'수비 이닝에 잡은 아웃 (리그 모드 · 1:1 대전)',st:'out',goal:3000,rw:[[{bp:50000}]]},
   {id:'r_ha',ic:'q_ha',t:'피안타 100개',d:'내 투수진이 맞은 안타 (리그 모드 · 1:1 대전)',st:'ha',goal:100,rw:[[{bp:30000}],[{it:'dpack',n:50}]]},
   {id:'r_h',ic:'q_hit',t:'안타 3,000개',d:'내 타선이 친 안타 (리그 모드 · 1:1 대전)',st:'h',goal:3000,rw:[[{bp:80000}],[{it:'pk_R',n:100}]]},
   {id:'r_lg',ic:'q_lg',t:'리그 모드 500판 진행',d:'리그 모드 경기 완료 (자동 플레이 포함)',st:'lg',goal:500,rw:[[{bp:50000}],[{it:'pk_F',n:10}]]}];
 function qHrClear(){ const H=hrState(); return H.done?HR_MAX:Math.max(0,(H.stage||1)-1); }
 const QREACH=[
-  {id:'a_pvp1',ic:'q_pvp1',t:'1대1 첫 승리',d:'1:1 대전에서 처음으로 이기기',v:()=>qC('pvw'),goal:1,rw:[[{bp:700000}],[{it:'pkc_L',n:20}]]},
+  {id:'a_pvp1',ic:'q_pvp1',t:'1대1 첫 승리',d:'1:1 대전에서 처음으로 이기기',v:()=>qC('pvw'),goal:1,rw:[[{bp:700000}],[{it:'pkc_L',n:10}]]},
   ...CLUBS.map(([id])=>({id:'a_syn_'+id,ic:'q_syn',t:`"${Q_NICK(id)} 4단계" 시너지로 300판 플레이`,d:`${clubFake(id)} 시너지 4단계(20명)를 켠 채로 경기 완료 (리그 모드 · 1:1 대전)`,v:()=>((QS().syn||{})[id]||0),goal:300,rw:[[{it:'pkt_F_'+id,n:100}]]})),
   {id:'a_hr50',ic:'q_hr50',t:'홈런 레이스 50스테이지 클리어',d:'홈런 레이스 STAGE 50까지 클리어',v:qHrClear,goal:50,rw:[[{bp:5000000}]]},
-  {id:'a_hr100',ic:'q_hr100',t:'홈런 레이스 100스테이지 클리어',d:'홈런 레이스 마지막 STAGE 100까지 클리어',v:qHrClear,goal:100,rw:[[{it:'pkc_L',n:100}]]},
-  {id:'a_pr100',ic:'q_prac',t:'연습 모드 100회 플레이',d:'배팅·피칭 연습에서 한 타석 이상 진행한 횟수',v:()=>qC('pr'),goal:100,rw:[[{bp:1000000}],[{it:'pkc_L',n:30}]]},
+  {id:'a_hr100',ic:'q_hr100',t:'홈런 레이스 100스테이지 클리어',d:'홈런 레이스 마지막 STAGE 100까지 클리어',v:qHrClear,goal:100,rw:[[{it:'pkc_L',n:40}]]},
+  {id:'a_pr100',ic:'q_prac',t:'연습 모드 100회 플레이',d:'배팅·피칭 연습에서 한 타석 이상 진행한 횟수',v:()=>qC('pr'),goal:100,rw:[[{bp:1000000}],[{it:'pkc_L',n:15}]]},
   {id:'a_att14',ic:'q_att',t:'난 이 게임에 진심이야',d:'출석 14일 이상',v:()=>(state.att&&state.att.n)||0,goal:14,rw:[[{it:'pkm_K',n:10}]]},
-  {id:'a_lg5000',ic:'q_crown',t:'리그의 강자',d:'리그 모드 5,000판 플레이',v:()=>qC('lg'),goal:5000,rw:[[{bp:1000000},{it:'pk_L',n:100}]]},
+  {id:'a_lg5000',ic:'q_crown',t:'리그의 강자',d:'리그 모드 5,000판 플레이',v:()=>qC('lg'),goal:5000,rw:[[{bp:1000000},{it:'pk_L',n:50}]]},
   {id:'a_pvp10',ic:'q_pvp10',t:'1대1의 강자',d:'1:1 대전 10승',v:()=>qC('pvw'),goal:10,rw:[[{it:'pk_H',n:50}]]},
   {id:'a_tr50',ic:'q_tr',t:'트레이드가 버릇이 되었어',d:'트레이드 50번 진행',v:()=>qC('tr'),goal:50,rw:[[{it:'pkc_M',n:30}],[{it:'pkc_H',n:50}]]},
-  {id:'a_fa20',ic:'q_fa',t:'FA의 큰손',d:'FA 이적 20번 진행',v:()=>qC('fa'),goal:20,rw:[[{it:'fa',n:20},{it:'pkc_L',n:10}]]},
+  {id:'a_fa20',ic:'q_fa',t:'FA의 큰손',d:'FA 이적 20번 진행',v:()=>qC('fa'),goal:20,rw:[[{it:'fa',n:20},{it:'pkc_L',n:5}]]},
   {id:'a_shop10',ic:'q_shop',t:'상점 단골',d:'상점에서 아이템 10번 구매',v:()=>qC('shop'),goal:10,rw:[[{gem:300000},{bp:500000}]]},
   {id:'a_gs',ic:'q_gs',t:'잊을 수 없는 그랜드 슬램',d:'홈런 레이스를 뺀 모드에서 첫 만루 홈런',v:()=>qF('gs')?1:0,goal:1,rw:[[{bp:300000}]]},
-  {id:'a_file',ic:'q_file',t:'어나더 플레이어',d:'구단 정보에서 선수 파일 불러오기 완료',v:()=>qF('names')?1:0,goal:1,rw:[[{bp:500000},{it:'pk_L',n:20}]]},
-  {id:'a_tc1',ic:'q_tc1',t:'특성 적용',d:'처음으로 선수에게 특성 장착',v:()=>qF('tc1')?1:0,goal:1,rw:[[{it:'pkc_L',n:5}]]},
+  {id:'a_file',ic:'q_file',t:'어나더 플레이어',d:'구단 정보에서 선수 파일 불러오기 완료',v:()=>qF('names')?1:0,goal:1,rw:[[{bp:500000},{it:'pk_L',n:10}]]},
+  {id:'a_tc1',ic:'q_tc1',t:'특성 적용',d:'처음으로 선수에게 특성 장착',v:()=>qF('tc1')?1:0,goal:1,rw:[[{it:'pkc_L',n:3}]]},
   {id:'a_tcx',ic:'q_tcx',t:'최초의 초월',d:'처음으로 선수 초월 성공',v:()=>qF('tcx')?1:0,goal:1,rw:[[{bp:900000}]]},
   {id:'a_packs',ic:'q_packs',t:'더 많은 팩을 줘요',d:'카드팩 시리즈 14종을 각각 500번 이상 열기 (가장 적게 연 팩 기준)',v:()=>{ const po=QS().po||{}; return Math.min(...PACKS.map(x=>po[x.id]||0)); },goal:500,rw:[[{all:1,n:50}]]},
   {id:'a_evo10',ic:'q_evo10',t:'최초의 10강',d:'처음으로 카드를 10강까지 진화',v:()=>qF('evo10')?1:0,goal:1,rw:[[{bp:500000}]]},
@@ -3536,7 +3548,7 @@ const QREACH=[
   {id:'a_sym',ic:'q_sym',t:'심볼릭 덱',d:'같은 등급 · 같은 구단 카드로만 짠 덱 장착 (타순 9명과 선발 포함)',v:()=>qF('sym')?1:0,goal:1,rw:[[{it:'pkc_S',n:100},{it:'pkc_S2',n:100}]]},
   {id:'a_wo9',ic:'q_wo9',t:'약속의 9회',d:'9회 말 끝내기로 처음 승리',v:()=>qF('wo9')?1:0,goal:1,rw:[[{it:'pk_myL',n:9}]]},
   {id:'a_wish',ic:'q_wish',t:'소원을 말해봐',d:'저장 · 계정 창의 코드 칸에 "숫자BP" 입력 (예: 300000BP, 1~500,000BP, 한 번만)',v:()=>qF('wish')?1:0,goal:1,rw:[[{it:'pkc_L',n:1}]]},
-  {id:'a_tog',ic:'q_tog',t:'투게더!',d:'구단 시너지 4개 이상이 한꺼번에 켜진 덱 맞추기',v:()=>{ qTogether(); return qF('together')?1:0; },goal:1,rw:[[{it:'pkc_L',n:3}]]}];
+  {id:'a_tog',ic:'q_tog',t:'투게더!',d:'구단 시너지 4개 이상이 한꺼번에 켜진 덱 맞추기',v:()=>{ qTogether(); return qF('together')?1:0; },goal:1,rw:[[{it:'pkc_L',n:2}]]}];
 function QS(){ const q=state.qs=state.qs||{}; q.c=q.c||{}; q.syn=q.syn||{}; q.rep=q.rep||{}; q.done=q.done||{}; q.f=q.f||{}; return q; }
 function qC(k){ return (state&&QS().c[k])||0; }
 function qF(k){ return !!(state&&QS().f[k]); }
@@ -3624,7 +3636,7 @@ const BAG_INFO={
   dpack:{img:()=>`<div style="height:170px;display:flex;justify-content:center;"><img src="${IMG.spk_D}" alt="" style="height:170px;width:auto;object-fit:contain;"></div>`,desc:'1라운더(D) 선수 1명이 나오는 카드팩이에요. 한 번에 여러 장 열 수 있어요.'},
   fa:{img:()=>imgFAPass(),desc:'FA 이적 1회를 이적료와 대가 선수 없이 진행해요. 사용하면 FA 이적 화면으로 가서 선수와 구단을 골라요.'},
   legend:{img:()=>imgLegendPass(),desc:'구단을 직접 골라 그 구단 레전드(L) 카드 1장을 뽑아요.'},
-  auto100:{img:()=>imgAutoPass(),desc:'지금 팀 설정으로 9이닝 경기 100번을 바로 끝낸 것으로 계산해요. BP 보상과 스테이지 진행도 받아요.'}
+  auto100:{img:()=>imgAutoPass(),desc:'리그 모드 100경기를 모두 승리로 처리하고 스킵해요. 승리 BP, 시리즈 클리어 보너스, 스테이지 진행을 받아요.'}
 };
 function renderBag(){
   const b=document.getElementById('bagBody'); if(!b||!state) return;
@@ -3667,7 +3679,7 @@ function renderBag(){
     if(PACK_ITEMS[k]){ if(PACK_ITEMS[k].sel){ BAG.pick=k; renderBag(); } else bagOpenPack(k,PACK_ITEMS[k].club?{club:PACK_ITEMS[k].club}:PACK_ITEMS[k].my?{club:myClub()}:{}); }
     else if(k==='fa') openFA(null,'bag');
     else if(k==='legend'){ BAG.pickClub=true; renderBag(); }
-    else if(k==='auto100') runBatch(100);
+    else if(k==='auto100') runSkipPass(100);
   });
   b.querySelectorAll('[data-go]').forEach(el=>el.onclick=()=>go(el.dataset.go));
 }
@@ -4724,25 +4736,31 @@ document.getElementById('pickClose').onclick=()=>document.getElementById('pickSt
 /* 상대는 진화·어드민 효과 없이 원래 능력치로 (내 카드 진화가 상대에게 옮겨가지 않게) */
 function baseCopy(p){ const q=Object.assign({},p,p._base.stats); q.pitches=p.pitches.map((x,j)=>({...x,g:p._base.pg[j]})); q.team=TEAMOF[p.code]; q.team2=FROMOF[p.code]||null; return q; }
 /* 스테이지 200개: 상대 평균 능력치 1(D)에서 시작해 200스테이지에서 12.5(MAX 이상)까지 조금씩 오름 */
-const STAGE_MAX=500;
-/* 상대 평균 능력치: 1~200은 예전과 똑같은 곡선(200에서 12.5), 201~450은 13.0까지 천천히, 451~500은 14.0까지 가파르게 */
+const STAGE_MAX=1000;
+/* 상대 평균 능력치 (스테이지별로 나눠 배분)
+   1~200: 예전 곡선 그대로(200에서 12.5) / 201~500: 13.2까지 / 501~900: 14.0(일반 최대치+2)까지 / 901~1000: 상한을 풀고 16.0까지 */
 function stageTarget(n){ n=Math.min(STAGE_MAX,Math.max(1,n)); if(n<=200){ const x=(n-1)/199; return 1+11.5*Math.pow(x,0.85); }
-  if(n<=450) return 12.5+0.5*(n-200)/250; return 13+1.0*(n-450)/50; }
-/* 상대 AI 실력 (능력치와 별개: 공 고르는 눈, 컨택, 코너 제구, 수비 판단). 1스테이지부터 0.25 -> 450에서 0.8 -> 451~500은 1.4까지 급상승 */
-function aiSkill(){ if(!G||G.pvp||G.prac||G.hr) return 0; const n=G.stage||(state&&state.stage)||1; let k=0.25+0.55*Math.min(1,(n-1)/449); if(n>450) k+=0.6*Math.min(1,(n-450)/50); return k; }
+  if(n<=500) return 12.5+0.7*(n-200)/300; if(n<=900) return 13.2+0.8*(n-500)/400; return 14+2*(n-900)/100; }
+function stageCap(n){ return n>900?STAT_MAX+2+2*(n-900)/100:STAT_MAX+2; }   // 901부터 능력치 상한이 올라감 (1000에서 16)
+function stageVeloAdd(n){ return n>900?18*(n-900)/100:n>500?4*(n-500)/400:0; }   // 상대 투수 최고 구속: 1000에서 180km/h까지
+/* 상대 AI 실력 (능력치와 별개: 공 고르는 눈, 컨택, 코너 제구, 수비 판단)
+   1: 0.25 -> 450: 0.8 -> 900: 1.6 -> 1000: 4.0 (1000은 모든 능력치 MAX + 특성으로도 이길 수 없게) */
+function aiSkill(){ if(!G||G.pvp||G.prac||G.hr) return 0; const n=G.stage||(state&&state.stage)||1; let k=0.25+0.55*Math.min(1,(n-1)/449);
+  if(n>450) k+=0.8*Math.min(1,(n-450)/450); if(n>900) k+=2.4*Math.pow(Math.min(1,(n-900)/100),1.5); return k; }
 /* 보상 (9이닝 기준, 이닝이 짧으면 비율대로): 1스테이지 승리 약 8천 BP(주장팩 1장) → 100스테이지 약 3만(레전드팩 1장) → 200스테이지 약 5만 */
 function stageWin(n){ return Math.round((8000+220*(n-1))/100)*100; }
 const SERIES_WINS=10;   // 한 스테이지 = 시리즈: 10승을 채우면 다음 스테이지
 function stageInfo(n){ n=Math.min(STAGE_MAX,Math.max(1,n||1)); const W=stageWin(n), ms=n%10===0;
-  return {n,target:stageTarget(n),win:Math.round(W*0.3/100)*100,draw:Math.round(W*0.12/100)*100,lose:Math.round(W*0.06/100)*100,clear:W*(ms?6:3),milestone:ms}; }
+  return {n,target:stageTarget(n),win:Math.round(W*0.18/100)*100,draw:Math.round(W*0.07/100)*100,lose:Math.round(W*0.035/100)*100,clear:Math.round(W*(ms?3.5:1.8)/100)*100,milestone:ms}; }   // 리그 BP 보상 약 40% 낮춤
 function seriesWins(){ return (state.series&&state.series.stage===state.stage)?state.series.wins:0; }
 function scaleTo(p,target,isP){   // 실제 선수 개성(강약 차이)은 살리고 평균만 목표치로 이동
   const keys=isP?['stuff','ctl','comp','stam']:['power','contact','eye','def','arm','spd'];
   const vals=keys.map(k=>p[k]||5).concat(isP?p.pitches.filter(x=>x.g>0).map(x=>x.g):[]);
-  const d=target-vals.reduce((a,b)=>a+b,0)/vals.length, cl=v=>Math.max(0.5,Math.min(STAT_MAX+2,v+d));
+  const n0=(state&&state.stage)||1, CAP=stageCap(n0), VA=stageVeloAdd(n0);
+  const d=target-vals.reduce((a,b)=>a+b,0)/vals.length, cl=v=>Math.max(0.5,Math.min(CAP,v+d));
   const q=Object.assign({},p); keys.forEach(k=>q[k]=cl(p[k]||5));
-  if(isP){ q.pitches=p.pitches.map(x=>x.g>0?Object.assign({},x,{g:Math.max(0.5,Math.min(STAT_MAX+2,Math.round((x.g+d)*2)/2))}):x);
-    q.velo=Math.round(clamp(126+target*2+(p.velo-145)*0.6,118,162)); q.maxVelo=q.velo+3; }
+  if(isP){ q.pitches=p.pitches.map(x=>x.g>0?Object.assign({},x,{g:Math.max(0.5,Math.min(CAP,Math.round((x.g+d)*2)/2))}):x);
+    q.velo=Math.round(clamp(126+target*2+(p.velo-145)*0.6+VA,118,Math.min(180,162+VA))); q.maxVelo=Math.min(180,q.velo+3); q.vcap=Math.min(180,162+VA); }
   return q;
 }
 function makeOpp(){
@@ -4767,11 +4785,11 @@ function renderMatchSetup(){
     상대 평균 능력치 <b>${SI.target.toFixed(1)}</b> (${gr(Math.round(SI.target))}) · 1승 <b style="color:var(--gold-hi)">${fmt(winBP)} BP</b> · 시리즈 클리어 보너스 <b style="color:var(--gold-hi)">${fmt(SI.clear)} BP</b>${SI.milestone?' <small style="color:var(--gold-hi)">(10스테이지 ×2)</small>':''}<br><b style="color:var(--red-hi)">${tm?tm.full:"우리 팀"}</b> (홈) vs <b>${o.team.full}</b> · 선발 <b>${nm(o.pitcher)}</b> (${tagOf(o.pitcher)})`;
   if(state.admin){ const box=document.createElement('div'); box.className='adm-stage';   // 관리자: 원하는 스테이지로 바로 이동
     box.innerHTML=`<b>ADMIN</b> 스테이지 선택 <input type="number" id="admStageIn" min="1" max="${STAGE_MAX}" value="${state.stage}" inputmode="numeric"><button class="btn sm" id="admStageGo">이동</button>
-      ${[1,100,200,300,400,450,451,500].map(n=>`<button class="btn sm ghost" data-ast="${n}">${n}</button>`).join('')}`;
+      <input type="range" id="admStageR" min="1" max="${STAGE_MAX}" step="1" value="${state.stage}" style="flex:1 1 100%;">`;
     document.getElementById('setupVs').appendChild(box);
     const goSt=v=>{ v=Math.max(1,Math.min(STAGE_MAX,Math.round(+v||1))); state.stage=v; state.bestStage=Math.max(state.bestStage||1,v); state.series={stage:v,wins:0}; SETUP.opp=null; saveGame(); toast(`STAGE ${v}로 이동했어요.`); renderMatchSetup(); };
     box.querySelector('#admStageGo').onclick=()=>goSt(box.querySelector('#admStageIn').value);
-    box.querySelectorAll('[data-ast]').forEach(b=>b.onclick=()=>goSt(b.dataset.ast)); }
+    const R=box.querySelector('#admStageR'), I=box.querySelector('#admStageIn'); R.oninput=()=>{ I.value=R.value; }; R.onchange=()=>goSt(R.value); I.oninput=()=>{ R.value=I.value; }; }   // 슬라이더를 놓으면 바로 이동
   const ip=document.getElementById('innPick'); ip.innerHTML="";
   [3,5,9].forEach(n=>{const c=document.createElement('div');c.className='chip'+(SETUP.inn===n?' on':'');c.textContent=n+'이닝';
     c.onclick=()=>{SETUP.inn=n;renderMatchSetup();};ip.appendChild(c);});
@@ -4785,7 +4803,7 @@ function renderMatchSetup(){
     ul.appendChild(li);});
 }
 document.getElementById('btnPlayBall').onclick=()=>startGame(false);
-/* ===== 연속 자동 경기 (최대 50경기) ===== */
+/* ===== 연속 자동 경기 (최대 100경기) ===== */
 let RUN=null, RUN_T=null;
 SETUP.autoN=SETUP.autoN||1;
 function syncRunPick(){
@@ -5309,14 +5327,14 @@ function startMeter(){
   const crisis=G.bases[1]||G.bases[2]||G.balls===3||(G.strikes===2&&G.balls>=2);
   const calm=crisis?(0.72+(P.comp||5)*0.032):1;
   const cmd=0.85+(P.ctl||6)*0.03+(P.meas?clamp((8-P.meas.bb)*0.004,-0.04,0.03):0);   // 실측 볼넷률이 낮으면 조금 더 넓게   // 제구가 좋으면 초록 구간이 넓어짐
-  const goodW=Math.min(96,(18+g*4.5)*tired*calm*cmd);
+  const goodW=Math.min(96,(18+g*4.5)*tired*calm*cmd*.85);   // 투구 난이도 상향: 초록 칸 15% 좁게
   // 노란(완벽) 칸 = 초록 칸의 일부. 침착성이 높을수록 넓고, 침착성 MAX면 초록 전체가 노랑
   const cp=Math.max(1,Math.min(STAT_MAX,P.comp||5)), frac=cp>=STAT_MAX?1:Math.min(1,0.12+(cp-1)*0.075);
   const perfW=goodW*frac;
   const zg=document.getElementById('zoneGood'), zp=document.getElementById('zonePerf');
   zg.style.left=(50-goodW/2)+"%"; zg.style.width=goodW+"%"; zp.style.left=(50-perfW/2)+"%"; zp.style.width=perfW+"%";
   G._good=goodW; G._perf=perfW;
-  meterSpeed=Math.max(1.6,(3.2-g*0.14))*(1+fat*0.025);   // 게이지가 빠르게 움직임 (구종 등급이 높을수록 조금 느려짐)
+  meterSpeed=Math.max(1.9,(3.2-g*0.14)*1.2)*(1+fat*0.025);   // 게이지 20% 빠르게 (투구 난이도 상향)   // 게이지가 빠르게 움직임 (구종 등급이 높을수록 조금 느려짐)
   meterPos=Math.random()*100; meterDir=Math.random()<.5?1:-1;
   const step=()=>{ meterPos+=meterDir*meterSpeed;
     if(meterPos>=100){meterPos=100;meterDir=-1;} if(meterPos<=0){meterPos=0;meterDir=1;}
@@ -5391,7 +5409,7 @@ const PITCH_DV={"포심":0,"투심":-3,"슬라":-12,"체업":-14,"커브":-22,"�
 function pitchVelo(P,pt){ const F=(typeof FORM!=='undefined'&&FORMY(P))||{}; const dv=(F.dv&&F.dv[pt.short])||0, vr=(F.vary&&pt.short===(F.varyPt||'포심'))?(Math.random()*2-1)*F.vary:0;
   const Y=pmvYear(P), rv=pmvGet(Y,pt.short,P), fb=Y&&pmvFB(Y);
   const base=(rv&&fb)?P.velo+(rv[1]-fb[1]):P.velo+(PITCH_DV[pt.short]||0);   // 실측이 있으면 그 투수의 직구-구종 구속 차이 그대로
-  return Math.round(base+dv+vr+(Math.random()*4-2)); }   // 임찬균 느린 커브, 소자 직구 구속 조절
+  return Math.min(P.vcap||200,Math.round(base+dv+vr+(Math.random()*4-2))); }   // 임찬균 느린 커브, 소자 직구 구속 조절 / 상대 고스테이지 상한 180
 function aiChoosePitch(){
   const P0=G.pitchers[1], P=tiredP(P0,G.pc[1]);
   const avail=P.pitches.filter(x=>x.g>0), Y=pmvYear(P0), wt=x=>Y?((pmvGet(Y,x.short,P0)&&pmvGet(Y,x.short,P0)[0])||0.5):x.g*x.g;   // 실측 구사율이 있으면 그대로
@@ -5449,12 +5467,13 @@ function swingResult0(cur,B,t){
   B=effB(B);
   const Q=pitchQ(cur.P,cur.pt), P={g:cur.g+Q.dg,velo:cur.velo+Q.feel}, inZone=cur.inZone;
   const ST=cur.sw||'level', pv=G&&G.lastPitchUV?G.lastPitchUV[1]:.5, low=pv>.66, high=pv<.33, match=(ST==='upper'&&low)||(ST==='down'&&high)?.05:(ST==='upper'&&high)||(ST==='down'&&low)?-.04:0;   // 스윙 종류와 공 높이 궁합
-  const w=contactW(B.contact)*(1-Q.dec*0.12)*1.15*(ST==='upper'?.9:ST==='down'?1.1:1), e=Math.abs(t-IDEAL);   // 디셉션: 공이 늦게 보여 정타 범위가 좁아짐 / 정타 범위 전체 15% 넓힘 (적응 쉽게)
-  const whiff=clamp((0.15+P.g*0.018+Math.max(0,P.velo-140)*0.005+((cur.stuff||6)-6)*0.015+Q.whiff-B.contact*0.014+(inZone?0:0.22)-(!inZone&&tcHas(B,'hREV')?0.2:0)+(ST==='upper'?.03:ST==='down'?-.03:0))*(cur.peek?0.4:1),0.03,0.8);
+  const MAN=G&&!G.top&&!G.full&&!G.auto&&!G.pvp, AKp=G&&!G.top?aiSkill():0;   // MAN: 내가 직접 치는 중 (타격 난이도 크게 낮춤)
+  const w=contactW(B.contact)*(1-Q.dec*0.12)*(MAN?1.5:1.15)*(ST==='upper'?.9:ST==='down'?1.1:1), e=Math.abs(t-IDEAL);   // 디셉션: 공이 늦게 보여 정타 범위가 좁아짐 / 정타 범위 전체 15% 넓힘 (적응 쉽게)
+  const whiff=clamp((0.15+P.g*0.018+Math.max(0,P.velo-140)*0.005+((cur.stuff||6)-6)*0.015+Q.whiff-B.contact*0.014+(inZone?0:0.22)-(!inZone&&tcHas(B,'hREV')?0.2:0)+(ST==='upper'?.03:ST==='down'?-.03:0))*(cur.peek?0.4:1)*(MAN?.72:1)+.06*Math.max(0,AKp-1.6),0.03,0.9);
   if(e>w*1.8||Math.random()<whiff) return {k:'whiff', early:t<IDEAL};
   if(e>w) return Math.random()<0.7?{k:'foul'}:{k:'out',txt:t<IDEAL?'타이밍이 빨라 땅볼':'밀린 타구 뜬공'};
   const q=1-e/w;
-  const h=tcHitBonus(B,cur)-((cur.P&&cur.P.tcWeak)||0)-(tcHas(cur.P,'pDARK')?0.15:0)-(tcHas(cur.P,'pCENTER')&&inZone&&cur.zone===4?0.2:0)+(G&&G.hr?hrSolid(G.hr.stage):0)+q*0.35+(B.contact-5)*0.018-(P.g-5)*0.016-Q.gb+(inZone?0.03:-0.15)+match-(cur.edge&&inZone?.05*cur.edge:0)+Math.random()*0.62;
+  const h=tcHitBonus(B,cur)-((cur.P&&cur.P.tcWeak)||0)-(tcHas(cur.P,'pDARK')?0.15:0)-(tcHas(cur.P,'pCENTER')&&inZone&&cur.zone===4?0.2:0)+(G&&G.hr?hrSolid(G.hr.stage):0)+q*0.35+(B.contact-5)*0.018-(P.g-5)*0.016-Q.gb+(inZone?0.03:-0.15)+match-(cur.edge&&inZone?.05*cur.edge:0)+(MAN?.04:0)-.075*Math.max(0,AKp-1.6)+Math.random()*0.62;   // 900스테이지부터 상대 투수가 압도적
   if(h<0.42) return (G.strikes<2&&Math.random()<0.55)?{k:'foul'}:{k:'out',txt:'빗맞은 범타'};
   const d=(hitDist(B.power,q,P.g)+(G&&G.hr?G.hr.bonus:0))*(ST==='upper'?1.06:ST==='down'?.9:1);   // 홈런 레이스: 배팅볼이라 더 멀리 / 어퍼는 멀리, 다운은 짧게
   if(h<0.67){ return {k:'out',d,txt:pick(ST==='upper'?['뜬공 아웃','뜬공 아웃','라인드라이브 아웃']:ST==='down'?['잘 맞았지만 정면 땅볼','잘 맞았지만 정면 땅볼','라인드라이브 아웃']:['잘 맞았지만 정면 땅볼','뜬공 아웃','라인드라이브 아웃'])}; }
@@ -9282,7 +9301,7 @@ function endGame(){
   const res=my>op?'W':(my<op?'L':'T');
   const SI=stageInfo(G.stage||state.stage);
   const sm=1+SI.n/100;   // 득점·삼진 보너스도 스테이지에 따라 조금씩
-  let reward=Math.round(((res==='W'?SI.win:res==='T'?SI.draw:SI.lose) + (my*100+G.st.myK*60)*sm)*k/100)*100;
+  let reward=Math.round(((res==='W'?SI.win:res==='T'?SI.draw:SI.lose) + (my*60+G.st.myK*35)*sm)*k/100)*100;
   let stageMsg='';
   if((G.stage||state.stage)===state.stage){
     if(!state.series||state.series.stage!==state.stage) state.series={stage:state.stage,wins:0};
