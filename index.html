@@ -5012,7 +5012,9 @@ function pickApply(k,out){ const r=runnerOf(k), base=k===0?'1루':'2루';
   else { log(`${nm(r)} 귀루, 세이프.`); flashCallout('SAFE','#fff'); G.holdNext=true; G.lead=false; resumeAfterRun(600); } }
 function doPickoff(k,auto){
   if(G.pvp) return pvPickoff(k);
-  const r=runnerOf(k), p=pickoffProb(k,G.lead), base=k===0?'1루':'2루', P=curPitcher(), out=Math.random()<p;
+  const going=G.stealGo&&G.stealGo.k===k; if(G.stealGo) G.stealGo=null;   // 뛰려던 주자를 견제로 잡음: 귀루가 늦어 아웃 확률이 크게 오름 (도루는 취소)
+  const r=runnerOf(k), p=going?Math.max(.6,Math.min(.9,pickoffProb(k,true)*3)):pickoffProb(k,G.lead), base=k===0?'1루':'2루', P=curPitcher(), out=Math.random()<p;
+  if(going) log(`${nm(r)}, 스타트를 끊으려다 걸렸다!`);
   log(`${nm(P)} ${base} 견제`);
   const apply=()=>{ if(!G||G.over) return;
     if(out){ if(!baseOut(k,`견제사! ${nm(r)} ${base}에서 아웃`)) resumeAfterRun(); }
@@ -5023,7 +5025,7 @@ function doPickoff(k,auto){
 /* 도루: 버튼(또는 AI)으로 정해 두면 다음 투구의 릴리스 순간 주자가 출발. 공이 포수에게 들어간 뒤 포수 송구로 결과가 남
    (공을 쳐서 인플레이·파울이 되거나 밀어내기 볼넷·몸에 맞는 공이면 도루는 없던 일) */
 function stealStart(k,auto){ if(G.pvp) return doSteal(k,auto);
-  G.stealGo={k,hold:!!G.holdNext,auto:!!auto}; log(`${nm(runnerOf(k))} ${k===0?'2루':'3루'} 도루 준비 (투구와 함께 스타트)`); syncRunBtns(); }
+  G.stealGo={k,hold:!!G.holdNext,auto:!!auto}; if(!auto||!G.top) log(`${nm(runnerOf(k))} ${k===0?'2루':'3루'} 도루 준비 (투구와 함께 스타트)`); syncRunBtns(); }   // 상대 주자의 도루 계획은 알리지 않음 (릴리스 때 '스타트!'로만)
 function stealResolve(then){ const S=G.stealGo; G.stealGo=null; if(!S||!G.bases[S.k]||G.bases[S.k+1]){ then(); return; }
   const k=S.k, r=runnerOf(k), base=k===0?'2루':'3루', ok=Math.random()<stealProb(k,S.hold);
   const apply=()=>{ if(!G||G.over) return; G.skipRun=true;
@@ -5049,7 +5051,7 @@ function syncRunBtns(){
   const bs=document.getElementById('btnSteal'), bp=document.getElementById('btnPickoff'); if(!bs||!G) return;
   const k=stealBase(), pk=pickBase();
   bs.style.display=(!G.top&&!G.auto&&k>=0&&!G.stealGo)?'':'none'; if(k>=0){ const r=runnerOf(k); bs.textContent=`${nm(r)} ${k===0?'2루':'3루'} 도루`; }
-  bp.style.display=(G.top&&!G.auto&&pk>=0&&!G.stealGo)?'':'none'; if(pk>=0) bp.textContent=`${pk===0?'1루':'2루'} 견제${G.lead?' · 리드 큼':''}`;
+  bp.style.display=(G.top&&!G.auto&&pk>=0)?'':'none';   // 상대가 뛰려고 해도 견제 가능 if(pk>=0) bp.textContent=`${pk===0?'1루':'2루'} 견제${G.lead?' · 리드 큼':''}`;
 }
 function continuePitch(){
   if(G.over)return;
@@ -5116,12 +5118,13 @@ function evFoul(){ if(CAP){ CAP.push({fn:evFoul,args:[]}); return; } if(G&&G.hr)
 function evOut(txt,silent){
   if(CAP){ CAP.push({fn:evOut,args:[...arguments]}); return; } if(G) G.stealGo=null;
   if(G&&G.hr) return hrPitchDone(false,txt?txt+'.':'아웃.');
-  if(txt&&!silent&&!evOut._in&&!G._plan){ try{ G._plan=fpPlan(fpParse(txt,0),0); }catch(e){ G._plan=null; } }
+  const nice=/호수비/.test(String(txt||'')); if(nice) G._plan=null;   // 호수비로 잡은 공: 하이라이트로 끝, 수비 장면을 또 만들지 않음
+  if(txt&&!silent&&!nice&&!evOut._in&&!G._plan){ try{ G._plan=fpPlan(fpParse(txt,0),0); }catch(e){ G._plan=null; } }
   if(txt&&!silent&&!evOut._in&&G._plan&&!G.prac&&!/호수비/.test(txt)){ const PL=G._plan, F=fielderOf(PL.slot), DM=defModel(F), kind=PL.kind, gb=kind==='gb';   // 수비 능력으로 실책·빠지는 안타
     const eC=DM.errC*(gb?1.2:kind==='fb'?.55:.8), eT=(gb||(kind==='ld'&&PL.inf))?DM.errT:0, r=Math.random();
     if(r<eC+eT){ G._plan=null; return evError(F,PL.slot,kind,r>=eC); }
     if((gb||kind==='ld')&&Math.random()<DM.hole){ G._plan=null; return evHit(1,`${nm(curBatter())} ${SLOT_KO[PL.slot]||''} 옆으로 빠지는 안타!`); } }
-  if(txt&&!evOut._in&&fpEligible()){ const pi=fpParse(txt,0); if(pi){ pi.plan=G._plan; const a=[...arguments], gid=G.id; try{ fpPlay(pi,()=>{ if(G&&G.id===gid&&!G.over){ evOut._in=true; try{ evOut.apply(null,a); } finally{ evOut._in=false; } } }); return; }catch(e){ console.error(e); FP.busy=false; } } }   // 수비 장면을 먼저 보여 줌
+  if(txt&&!nice&&!evOut._in&&fpEligible()){ const pi=fpParse(txt,0); if(pi){ pi.plan=G._plan; const a=[...arguments], gid=G.id; try{ fpPlay(pi,()=>{ if(G&&G.id===gid&&!G.over){ evOut._in=true; try{ evOut.apply(null,a); } finally{ evOut._in=false; } } }); return; }catch(e){ console.error(e); FP.busy=false; } } }   // 수비 장면을 먼저 보여 줌
   { const B=curBatter(), op=curPitcher(); if(tcHas(B,'hRIVAL')&&!tcHas(op,'overclass')&&!tcHas(op,'intim')){ G.tcRival=G.tcRival||{}; G.tcRival[B.i]=(G.tcRival[B.i]||0)+1; try{ if(G.tcSeen) delete G.tcSeen['hRIVAL|'+B.i+'|pa'+(G.paN||0)]; tcFx(B,'hRIVAL','아웃당해서 더 강해짐'); }catch(e){} } }   // 승부욕
   if(txt){ log(txt+'.'); flashCallout('OUT','var(--chalk-dim)'); }
   G.outs++; if(G.top&&!G.prac) qAdd('out'); { const PL=G._plan; G._plan=null; try{ if(PL) fpApplyOut(PL); }catch(e){ console.error(e); } } renderBoard();
