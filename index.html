@@ -870,6 +870,9 @@ gap:12px;align-items:center;border:1px solid var(--line);border-radius:14px;back
   .mgc-on.y{color:#86efac;}
   .mgc.sm{width:auto;}
   .mgc[data-cur]{outline:2px solid #86efac;}
+  .dex-mg{grid-column:1 / -1;margin-bottom:10px;}
+  .dex-mgr{cursor:pointer;}
+  .dex-mgr.lock{filter:grayscale(1) brightness(.55);}
   .mgr-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(138px,1fr));gap:8px;}
   .mgr-cur{display:flex;gap:12px;align-items:flex-start;cursor:pointer;}
   .mgr-info{flex:1;min-width:0;font-size:12.5px;line-height:1.5;}
@@ -1365,6 +1368,7 @@ gap:12px;align-items:center;border:1px solid var(--line);border-radius:14px;back
       <div class="tab" data-filter="titleh">타이틀 홀더</div>
       <div class="tab" data-filter="draft">1라운더</div>
       <div class="tab" data-filter="master">마스터+</div>
+      <div class="tab" data-filter="mgr">감독</div>
     </div>
     <div class="tabs clubtabs" id="dexClubs"></div>
     <div class="yearbar"><span>연도</span><select id="dexYear" style="display:none"></select><button class="yearbtn" id="dexYearBtn">전체 연도 ▾</button><button class="btn sm ghost" id="dexYearPrev">◀</button><button class="btn sm ghost" id="dexYearNext">▶</button></div>
@@ -3127,7 +3131,7 @@ function mgrDraw(){ const W=MGRS.map(m=>m.rank===1?1:2.5), tot=W.reduce((a,b)=>a
 function mgrOpen(n){ n=Math.max(1,Math.min(n,itemN('mpk'))); if(itemN('mpk')<1){ toast('감독팩이 없어요.'); return; }
   addItem('mpk',-n); const own=mgrOwn(), got=[]; for(let k=0;k<n;k++){ const m=mgrDraw(), isNew=!(own[m.id]>0); own[m.id]=(own[m.id]||0)+1; got.push([m,isNew]); }
   qFlag('mgr1'); if(got.some(([m])=>m.rank===1)) qFlag('mgrW'); saveGame();
-  const st=document.getElementById('mgrRevStage'), body=document.getElementById('mgrRevBody');
+  const st=document.getElementById('mgrRevStage'), body=document.getElementById('mgrRevBody'); st.querySelector('.modal-head b').textContent='감독팩 결과'; { const g=document.getElementById('mgrRevGo'); g.textContent='팀 설정에서 감독 넣기'; g.dataset.mid=''; }
   body.innerHTML=`<div class="mgr-grid rev">${got.map(([m,nw],k)=>`<div class="mgr-rev" style="animation-delay:${k*0.12}s">${mgrCard(m,{sm:n>1})}${nw?'<em class="mgr-new">NEW</em>':''}</div>`).join('')}</div>`;
   st.classList.add('on'); try{ renderBag(); }catch(e){} }
 
@@ -3720,7 +3724,7 @@ const QREACH=[
   {id:'a_file',ic:'q_file',t:'어나더 플레이어',d:'구단 정보에서 선수 파일 불러오기 완료',v:()=>qF('names')?1:0,goal:1,rw:[[{bp:500000},{it:'pk_L',n:10}]]},
   {id:'a_tc1',ic:'q_tc1',t:'특성 적용',d:'처음으로 선수에게 특성 장착',v:()=>qF('tc1')?1:0,goal:1,rw:[[{it:'pkc_L',n:3}]]},
   {id:'a_tcx',ic:'q_tcx',t:'최초의 초월',d:'처음으로 선수 초월 성공',v:()=>qF('tcx')?1:0,goal:1,rw:[[{bp:900000}]]},
-  {id:'a_packs',ic:'q_packs',t:'더 많은 팩을 줘요',d:'카드팩 시리즈 14종을 각각 500번 이상 열기 (가장 적게 연 팩 기준)',v:()=>{ const po=QS().po||{}; return Math.min(...PACKS.map(x=>po[x.id]||0)); },goal:500,rw:[[{all:1,n:50}]]},
+  {id:'a_packs',ic:'q_packs',t:'더 많은 팩을 줘요',d:'카드팩 시리즈 14종을 각각 500번 이상 열기 (가장 적게 연 팩 기준)',v:()=>{ const po=QS().po||{}; return Math.min(...PACKS.filter(x=>!x.mgr).map(x=>po[x.id]||0)); },goal:500,rw:[[{all:1,n:50}]]},
   {id:'a_evo10',ic:'q_evo10',t:'최초의 10강',d:'처음으로 카드를 10강까지 진화',v:()=>qF('evo10')?1:0,goal:1,rw:[[{bp:500000}]]},
   {id:'a_tc5',ic:'q_tc5',t:'다양한 청년',d:'한 카드에 특성 5개를 모두 장착',v:()=>qF('tc5')?1:0,goal:1,rw:[[{gem:550000}]]},
   {id:'a_max',ic:'q_max',t:'한계돌파',d:'진화로 어떤 능력치든 처음 MAX 달성',v:()=>qF('max')?1:0,goal:1,rw:[[{bp:300000}]]},
@@ -3970,6 +3974,9 @@ const PACKS=[
   {id:"M",name:"MVP팩",desc:"MVP(M) 선수 1명 · 1982~2025 역대 MVP",price:24000,img:"spk_M",glow:"rgba(70,140,255,.95)",color:"#9cc4ff",pool:p=>p.mvp,btn:"background:linear-gradient(180deg,#6aa2ff,#2f6be0);color:#fff;border-color:#2f5fae;"},
   {id:"L",name:"레전드팩",desc:"레전드(L) 선수 1명 · 왕년의 전설",price:30000,img:"spk_L",glow:"rgba(190,110,255,.9)",color:"var(--gold-hi)",pool:p=>p.legend,btn:"background:linear-gradient(180deg,var(--gold-hi),var(--gold));color:#2a1e05;border-color:#8a6a1e;"},
 ];
+PACKS.push({id:'MG',name:'감독팩',mgr:true,gem:true,desc:'역대 감독 카드 1장 · 1982~2025 연도별 감독 (GEM으로 뽑아요)',price:10000,img:'mpk',glow:'rgba(214,140,80,.95)',color:'#f0b98a',pool:()=>false,btn:'background:linear-gradient(180deg,#d9925a,#7a3f1a);color:#fff3e6;border-color:#c98a55;'});
+function mgrBuy(n){ const pk=PACKS.find(x=>x.mgr), cost=pk.price*n; if((state.gem||0)<cost){ toast('GEM이 부족해요.'); return; }
+  state.gem-=cost; addItem('mpk',n); mgrOpen(n); renderScout(); }
 let PACK_IDX=0;
 function renderScout(dir){
   const pk=PACKS[PACK_IDX];
@@ -3982,6 +3989,14 @@ function renderScout(dir){
   hero.classList.remove('slide-l','slide-r'); if(dir){ void hero.offsetWidth; hero.classList.add(dir>0?'slide-l':'slide-r'); }
   document.getElementById('packName').textContent=pk.name; document.getElementById('packName').style.color=pk.color;
   document.getElementById('packDesc').textContent=pk.desc;
+  if(pk.mgr){ document.getElementById('packTeam').style.display='none';
+    document.getElementById('packOwn').textContent=`감독 카드 ${MGRS.length}장 중 ${mgrCount()}장 보유 · 보유 GEM ${fmt(state.gem||0)}`;
+    const b=document.getElementById('packBuy'); b.style.cssText=pk.btn; b.innerHTML=`1장 뽑기<br><small>${fmt(pk.price)} GEM</small>`; b.disabled=(state.gem||0)<pk.price;
+    syncMulti();
+    const fb=document.getElementById('packFree'), t=itemN('mpk'); fb.style.display=t>0?'block':'none';
+    if(t>0){ const n=Math.min(t,MULTI_N); fb.innerHTML=`보유 팩으로 ${n}장 열기 (무료)<br><small>보유 감독팩 ${fmt(t)}장 · 장수는 아래 막대로 조절</small>`; fb.onclick=()=>{ const m=Math.min(itemN('mpk'),MULTI_N); if(m<1) return; mgrOpen(m); renderScout(); }; }
+    document.getElementById('packDots').innerHTML=PACKS.map((x,k)=>`<span class="${k===PACK_IDX?'on':''}" style="${k===PACK_IDX?'background:'+x.color:''}" data-k="${k}"></span>`).join('');
+    return; }
   const pool=packPool(pk.id), have=pool.filter(p=>state.owned[p.i]>0).length;
   const pt=document.getElementById('packTeam'); pt.style.display=(pk.id==='S'||pk.id==='S2')?'flex':'none';
   if(pk.id==='S'||pk.id==='S2') pt.innerHTML=[['all','전체']].concat(CLUBS.map(([id,nm])=>[id,nm.split(' ')[0]])).map(([id,nm])=>`<span class="pt-chip ${SIG_TEAM===id?'on':''}${pk.id==='S2'?' s2':''}" data-team="${id}">${nm}</span>`).join('');
@@ -4001,20 +4016,21 @@ function packStep(d){ PACK_IDX=(PACK_IDX+d+PACKS.length)%PACKS.length; renderSco
 document.getElementById('packPrev').onclick=()=>packStep(-1);
 document.getElementById('packNext').onclick=()=>packStep(1);
 document.getElementById('packDots').onclick=e=>{ const k=e.target.getAttribute&&e.target.getAttribute('data-k'); if(k!==null&&k!==undefined){ const d=(+k)-PACK_IDX; if(d){PACK_IDX=+k; renderScout(d);} } };
-document.getElementById('packBuy').onclick=()=>{ const pk=PACKS[PACK_IDX]; openPack(pk.id,pk.price); };
+document.getElementById('packBuy').onclick=()=>{ const pk=PACKS[PACK_IDX]; if(pk.mgr) return mgrBuy(1); openPack(pk.id,pk.price); };
 let MULTI_N=10;
 const MULTI_MAX=100;
 function syncMulti(){
   const pk=PACKS[PACK_IDX], n=MULTI_N, r=document.getElementById('multiN');
   r.value=n; document.getElementById('multiNv').textContent=n+'장';
   const b=document.getElementById('packBuy10'); b.style.cssText=pk.btn;
-  b.innerHTML=`${n}장 뽑기<br><small>${fmt(pk.price*n)} BP</small>`; b.disabled=state.bp<pk.price*n;
-  const can=Math.min(MULTI_MAX,Math.floor(state.bp/pk.price));
+  const cur=pk.gem?(state.gem||0):state.bp, unit=pk.gem?'GEM':'BP';
+  b.innerHTML=`${n}장 뽑기<br><small>${fmt(pk.price*n)} ${unit}</small>`; b.disabled=cur<pk.price*n;
+  const can=Math.min(MULTI_MAX,Math.floor(cur/pk.price));
   const mb=document.getElementById('multiMax'); mb.disabled=can<2; mb.textContent=can>=2?`최대 ${can}장`:'최대';
 }
 document.getElementById('multiN').oninput=e=>{ MULTI_N=+e.target.value; renderScout(); };
-document.getElementById('multiMax').onclick=()=>{ const pk=PACKS[PACK_IDX]; const can=Math.min(MULTI_MAX,Math.floor(state.bp/pk.price)); if(can<2){toast('BP가 부족합니다.');return;} MULTI_N=can; syncMulti(); };
-document.getElementById('packBuy10').onclick=()=>{ const pk=PACKS[PACK_IDX]; openPack10(pk.id,pk.price,MULTI_N); };
+document.getElementById('multiMax').onclick=()=>{ const pk=PACKS[PACK_IDX]; const can=Math.min(MULTI_MAX,Math.floor((pk.gem?(state.gem||0):state.bp)/pk.price)); if(can<2){toast(pk.gem?'GEM이 부족해요.':'BP가 부족합니다.');return;} MULTI_N=can; syncMulti(); };
+document.getElementById('packBuy10').onclick=()=>{ const pk=PACKS[PACK_IDX]; if(pk.mgr) return mgrBuy(MULTI_N); openPack10(pk.id,pk.price,MULTI_N); };
 (function(){ let x0=null,y0=null; const el=document.getElementById('packCar');
   el.addEventListener('touchstart',e=>{ if(e.target.closest&&e.target.closest('input,select,textarea,[data-noswipe]')){ x0=null; return; } x0=e.touches[0].clientX;y0=e.touches[0].clientY;},{passive:true});   /* 슬라이더를 끌 때는 카드 넘기기 안 함 */
   el.addEventListener('touchend',e=>{ if(x0===null)return; const dx=e.changedTouches[0].clientX-x0, dy=e.changedTouches[0].clientY-y0;
@@ -4109,6 +4125,7 @@ function playPackReveal(p,isNew){
 /* ============ DEX ============ */
 let dexFilter="all", dexClub="all", dexYear="all", DEX_IO=null;
 function renderDex(){
+  if(dexFilter==='mgr') return renderDexMgr();
   const owned=state.owned;
   const total=DB.length; const have=ownedList().length;
   document.getElementById('dexBar').style.width=(have/total*100)+"%";
@@ -4182,9 +4199,9 @@ function renderDexClubs(){
     `<div class="tab ${dexClub===id?'on':''}" data-club="${id}">${nm} <small>${cnt(id)}</small></div>`).join('');
   renderDexYears(ser);
 }
-function renderDexYears(ser){
-  const el=document.getElementById('dexYear'), base=ser.filter(p=>dexClub==="all"||inClub(p,dexClub)), m={};
-  base.forEach(p=>{ if(p.year){ const t=m[p.year]||(m[p.year]=[0,0]); t[1]++; if(state.owned[p.i]>0) t[0]++; } });
+function renderDexYears(ser,isMgr){
+  const el=document.getElementById('dexYear'), base=isMgr?ser.filter(m=>dexClub==="all"||m.club===dexClub):ser.filter(p=>dexClub==="all"||inClub(p,dexClub)), m={};
+  base.forEach(p=>{ const y=isMgr?p.y:p.year; if(y){ const t=m[y]||(m[y]=[0,0]); t[1]++; if(isMgr?(mgrOwn()[p.id]>0):state.owned[p.i]>0) t[0]++; } });
   const ys=Object.keys(m).sort((a,b)=>b-a);
   if(dexYear!=="all"&&!m[dexYear]) dexYear="all";
   el.innerHTML=`<option value="all">전체 연도</option>`+ys.map(y=>`<option value="${y}" ${y===dexYear?'selected':''}>${y}년 (${m[y][0]}/${m[y][1]})</option>`).join('');
@@ -4204,6 +4221,32 @@ document.getElementById('dexClubs').addEventListener('click',e=>{ const t=e.targ
 document.querySelectorAll('#scr-collection .tab').forEach(tab=>{
   tab.onclick=()=>{ document.querySelectorAll('#scr-collection .tab').forEach(t=>t.classList.remove('on')); tab.classList.add('on'); dexFilter=tab.getAttribute('data-filter'); renderDex(); };
 });
+
+/* 도감: 감독 카드 */
+function renderDexMgr(){ const own=mgrOwn(), have=mgrCount(), total=MGRS.length;
+  document.getElementById('dexBar').style.width=(have/total*100)+'%';
+  document.getElementById('dexCount').textContent=`감독 ${have} / ${total} 수집`;
+  const cnt=id=>{ const a=id==='all'?MGRS:MGRS.filter(m=>m.club===id); return `${a.filter(m=>own[m.id]>0).length}/${a.length}`; };
+  document.getElementById('dexClubs').innerHTML=[['all','전체 구단']].concat(CLUBS.map(([id,nm])=>[id,nm.split(' ')[0]])).map(([id,nm])=>`<div class="tab ${dexClub===id?'on':''}" data-club="${id}">${nm} <small>${cnt(id)}</small></div>`).join('');
+  renderDexYears(MGRS,true);
+  if(DEX_IO) DEX_IO.disconnect();
+  const L=MGRS.filter(m=>(dexClub==='all'||m.club===dexClub)&&(dexYear==='all'||String(m.y)===dexYear)).sort((a,b)=>(b.y-a.y)||(a.rank-b.rank));
+  const mine=L.filter(m=>own[m.id]>0), rest=L.filter(m=>!(own[m.id]>0)), cur=mgrCur();
+  const tile=m=>`<div class="dex-mgr ${own[m.id]>0?'':'lock'}" data-dm="${m.id}">${mgrCard(m,{sm:1,cnt:own[m.id]||0})}</div>`;
+  document.getElementById('dexGrid').innerHTML=`<div class="dexhead">보유 감독 <b>${mine.length}</b></div>`
+    +(mine.length?`<div class="mgr-grid dex-mg">${mine.map(tile).join('')}</div>`:'<p class="hint" style="grid-column:1 / -1;">아직 감독 카드가 없어요. 스카우트나 상점에서 감독팩을 열어 보세요.</p>')
+    +(rest.length?`<div class="dexhead">미보유 감독 <b>${rest.length}</b></div><div class="mgr-grid dex-mg">${rest.map(tile).join('')}</div>`:'')
+    +(L.length?'':'<p class="hint" style="grid-column:1 / -1;">이 조건에 맞는 감독이 없어요.</p>');
+  document.querySelectorAll('#dexGrid [data-dm]').forEach(e=>e.onclick=()=>mgrShow(MGR_BY[e.dataset.dm]));
+}
+function mgrShow(m){ const own=(mgrOwn()[m.id]||0)>0, on=mgrActive(m), F=mgrW(m), st=document.getElementById('mgrRevStage'), body=document.getElementById('mgrRevBody');
+  body.innerHTML=`<div class="mgr-cur" style="cursor:default;">${mgrCard(m,{on:own?on:null})}<div class="mgr-info"><b>${esc(mgrTitle(m))}</b>
+    <p>그 해 최종 ${mgrRankTxt(m)} (${m.n}팀) · ${F.t}<br>능력치: 타자 +${mgrPts(m.v*F.h)}점, 투수 +${mgrPts(m.v*F.p)}점 (항상 적용)</p>
+    <p><b class="gold">특성 · ${esc(m.tn)}</b><br>${MGR_TYPES[m.T].d}</p>
+    <p>특성은 ${esc(mgrTeamFull(m.club))} 선수 5명 이상(구단 시너지)일 때만 발동해요.</p>
+    <p class="${own?'mgr-ok':'mgr-no'}">${own?`보유 ${mgrOwn()[m.id]}장`:'미보유 · 감독팩에서 나와요'}</p></div></div>`;
+  const go=document.getElementById('mgrRevGo'); go.textContent=own?'이 감독 넣기':'팀 설정에서 감독 넣기'; go.dataset.mid=own?m.id:'';
+  st.querySelector('.modal-head b').textContent='감독 정보'; st.classList.add('on'); }
 
 let DEX_ORDER=[], DET_POS=0;
 function showDetail(i){
@@ -4816,7 +4859,7 @@ document.getElementById('scr-lineup').addEventListener('click',e=>{
   if(e.target.closest('[data-drag]')) return;
   const mv=e.target.closest('[data-mv]');
   if(mv){ e.stopPropagation(); const [k,d]=mv.dataset.mv.split(',').map(Number); const L=LU(); const t=L.bat[k]; L.bat[k]=L.bat[k+d]; L.bat[k+d]=t; saveGame(); renderLineup(); return; }
-  const row=e.target.closest('.lu-row'); if(row) openPicker(JSON.parse(row.dataset.w));
+  const row=e.target.closest('.lu-row'); if(row&&row.dataset.w) openPicker(JSON.parse(row.dataset.w));   // 감독 칸처럼 data-w가 없는 줄은 건너뜀
 });
 /* 드래그로 자리 바꾸기 + 꾹 눌러 능력치 보기 */
 const LU_PRESS={suppress:false};
@@ -4858,7 +4901,7 @@ function luPeek(i){
   const end=e=>{ if(press){ clearTimeout(press.t); press=null; }
     if(!drag) return; const d=drag; drag=null; d.g.remove(); if(d.over) d.over.classList.remove('drop-on');
     const r=rowAt(e.clientX,e.clientY); LU_PRESS.suppress=true; setTimeout(()=>LU_PRESS.suppress=false,350);
-    if(r) luSwap(d.w,JSON.parse(r.dataset.w)); };
+    if(r&&r.dataset.w) luSwap(d.w,JSON.parse(r.dataset.w)); };
   scr.addEventListener('pointerup',end); scr.addEventListener('pointercancel',e=>{ if(press){clearTimeout(press.t);press=null;} if(drag){ drag.g.remove(); if(drag.over) drag.over.classList.remove('drop-on'); drag=null; } });
   scr.addEventListener('contextmenu',e=>{ if(e.target.closest('.lu-row')) e.preventDefault(); });
 })();
@@ -5104,7 +5147,7 @@ document.getElementById('btnSub').onclick=openSub;
 document.getElementById('mgrClose').onclick=()=>document.getElementById('mgrStage').classList.remove('on');
 document.getElementById('mgrNone').onclick=()=>{ LU().mgr=null; saveGame(); document.getElementById('mgrStage').classList.remove('on'); renderLineup(); };
 document.getElementById('mgrRevClose').onclick=()=>document.getElementById('mgrRevStage').classList.remove('on');
-document.getElementById('mgrRevGo').onclick=()=>{ document.getElementById('mgrRevStage').classList.remove('on'); go('lineup'); setTimeout(()=>{ try{ const t=document.querySelector('#luTabs [data-lt="syn"]'); if(t) t.click(); }catch(e){} },60); };
+document.getElementById('mgrRevGo').onclick=()=>{ const g=document.getElementById('mgrRevGo'), mid=g.dataset.mid; if(mid&&MGR_BY[mid]){ LU().mgr=mid; saveGame(); toast(`${mgrTitle(MGR_BY[mid])} 부임!`); } document.getElementById('mgrRevStage').classList.remove('on'); go('lineup'); setTimeout(()=>{ try{ const t=document.querySelector('#luTabs [data-lt="syn"]'); if(t) t.click(); }catch(e){} },60); };
 document.getElementById('subClose').onclick=()=>{ document.getElementById('subStage').classList.remove('on'); G._dOut=null; if(G&&!G.over) continuePitch(); };
 
 /* ============ GAME ENGINE ============ */
