@@ -95,6 +95,32 @@
   .gemi{display:inline-flex;flex:none;} .gemi svg{width:100%;height:100%;filter:drop-shadow(0 0 3px rgba(120,220,255,.55));}
   .tile .chev{width:20px;height:20px;color:var(--chalk-dim);flex:none;} .tile .chev svg{width:100%;height:100%;}
   .tile.pvpt{border-color:#5a3a8a;background:linear-gradient(160deg,#2a1a44,#16102a);} .tile.pvpt .tn{color:#e7c8ff;}
+  .fr-me .ok{color:#57e089;} .fr-me .warn{color:#ffb3a8;font-size:12px;}
+  .fr-me{display:flex;justify-content:space-between;align-items:center;gap:10px;font-size:13px;} .fr-me b{font-size:20px;}
+  .fr-add{display:flex;gap:8px;align-items:stretch;} .fr-add .pv-in{flex:1 1 auto;min-width:0;width:auto;margin:0;font-size:15px;letter-spacing:0;text-align:left;text-transform:none;} .fr-add .btn{flex:0 0 auto;width:auto;padding:0 20px;}
+  .fr-row{display:flex;justify-content:space-between;align-items:center;gap:8px;padding:9px 0;border-top:1px solid var(--line);}
+  .fr-who{display:flex;flex-direction:column;min-width:0;} .fr-who small{color:var(--chalk-dim);font-size:11.5px;}
+  .fr-btns{display:flex;gap:6px;flex:0 0 auto;}
+  .fr-dot{display:inline-block;width:8px;height:8px;border-radius:50%;background:#64748b;margin-right:5px;vertical-align:1px;} .fr-dot.on{background:#22c55e;} .fr-dot.wait{background:#eab308;}
+  .sw-row{display:flex;width:100%;justify-content:space-between;align-items:center;gap:10px;margin-top:8px;padding:9px 12px;border-radius:12px;border:1px solid var(--line);background:rgba(255,255,255,.04);color:inherit;font:inherit;text-align:left;cursor:pointer;}
+  .sw-row span{display:flex;flex-direction:column;font-weight:800;font-size:14px;} .sw-row small{font-weight:600;font-size:11.5px;color:var(--chalk-dim);margin-top:2px;}
+  .sw{position:relative;flex:0 0 auto;width:46px;height:26px;border-radius:99px;background:#334155;transition:background .2s;} .sw b{position:absolute;top:3px;left:3px;width:20px;height:20px;border-radius:50%;background:#fff;transition:left .2s;} .sw.on{background:#22c55e;} .sw.on b{left:23px;}
+  #frInvBar{position:fixed;left:50%;top:10px;transform:translate(-50%,-140%);z-index:400;display:flex;align-items:center;gap:8px;width:min(94vw,440px);padding:10px 10px 10px 14px;border-radius:16px;background:rgba(10,20,36,.96);border:1px solid #3b82f6;box-shadow:0 10px 30px rgba(0,0,0,.55);transition:transform .3s;font-size:13px;line-height:1.45;}
+  #frInvBar.on{transform:translate(-50%,0);} .fib-txt{flex:1;min-width:0;}
+  .fib-b{flex:0 0 auto;width:42px;height:42px;border-radius:50%;border:0;display:flex;align-items:center;justify-content:center;cursor:pointer;padding:0;} .fib-b svg{width:22px;height:22px;} .fib-b.ok{background:#16a34a;} .fib-b.no{background:#dc2626;}
+  #emoBtn{position:fixed;left:12px;bottom:88px;z-index:300;width:44px;height:44px;border-radius:50%;border:1px solid rgba(255,255,255,.5);background:rgba(8,16,30,.8);display:flex;align-items:center;justify-content:center;padding:0;cursor:pointer;box-shadow:0 4px 12px rgba(0,0,0,.4);} #emoBtn svg{width:24px;height:24px;}
+  #emoPanel{position:fixed;left:12px;bottom:140px;z-index:300;display:none;padding:8px;border-radius:14px;background:rgba(10,20,36,.96);border:1px solid var(--line);box-shadow:0 8px 24px rgba(0,0,0,.5);width:196px;} #emoPanel.on{display:block;}
+  .emo-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:4px;} .emo-b{font-size:26px;line-height:1;padding:7px 0;border-radius:10px;border:0;background:rgba(255,255,255,.06);cursor:pointer;} .emo-b:active{transform:scale(.9);}
+  .emo-pop{position:fixed;left:50%;top:22%;z-index:450;display:flex;flex-direction:column;align-items:center;gap:2px;padding:10px 16px;border-radius:20px;background:rgba(10,20,36,.9);border:1px solid rgba(255,255,255,.25);pointer-events:none;animation:emoUp 2.6s ease both;}
+  .emo-pop.mine{top:34%;} .emo-big{font-size:52px;line-height:1.1;} .emo-pop small{font-weight:800;color:var(--chalk-dim);}
+  @keyframes emoUp{0%{opacity:0;transform:translate(-50%,20px) scale(.6);}12%{opacity:1;transform:translate(-50%,0) scale(1.08);}20%{transform:translate(-50%,0) scale(1);}80%{opacity:1;}100%{opacity:0;transform:translate(-50%,-30px);}}
+  .w-sc{display:flex;align-items:center;justify-content:center;gap:12px;text-align:center;} .w-sc div{display:flex;flex-direction:column;min-width:0;flex:1;} .w-sc small{color:var(--chalk-dim);font-size:11px;} .w-sc b{font-size:14px;} .w-sc em{font-style:normal;font-family:'Black Han Sans',sans-serif;font-size:40px;line-height:1.1;} .w-sc span{font-size:28px;color:var(--chalk-dim);}
+  .w-st{text-align:center;margin:6px 0;font-size:13px;}
+  .w-dia i{position:absolute;width:14px;height:14px;transform:rotate(45deg);background:rgba(255,255,255,.18);border:1px solid rgba(255,255,255,.45);} .w-dia i.on{background:#ffd23f;box-shadow:0 0 6px #ffd23f;} .w-dia .b2{left:20px;top:2px;} .w-dia .b1{left:37px;top:19px;} .w-dia .b3{left:3px;top:19px;}
+  .w-ct{display:flex;justify-content:center;align-items:center;gap:22px;} .w-dia{position:relative;width:54px;height:40px;}
+  .w-bso{font-size:12px;font-weight:800;} .w-bso i{display:inline-block;width:9px;height:9px;border-radius:50%;background:#334155;margin-left:3px;} .w-bso i.b{background:#22c55e;} .w-bso i.s{background:#eab308;} .w-bso i.o{background:#ef4444;}
+  .w-line{border-collapse:collapse;font-size:12px;width:100%;} .w-line th{text-align:left;padding:4px 6px;white-space:nowrap;max-width:110px;overflow:hidden;text-overflow:ellipsis;} .w-line td{text-align:center;padding:4px 3px;min-width:18px;} .w-line td.r{font-weight:900;color:var(--gold-hi);} .w-line tr.at th{color:#86efac;}
+  .w-log{font-size:12.5px;line-height:1.55;max-height:200px;overflow:auto;} .w-log div{padding:3px 0;border-bottom:1px solid rgba(255,255,255,.05);}
   .pv-card{border:1px solid var(--line);border-radius:14px;background:linear-gradient(160deg,#16293e,#101f31);padding:14px;margin-bottom:12px;}
   .pv-h{font-weight:900;font-size:15px;} .pv-seg{display:flex;gap:8px;} .pv-seg .btn{flex:1;}
   .pv-in{width:100%;box-sizing:border-box;margin-top:8px;padding:12px;border-radius:10px;border:1px solid var(--line);background:#0b1624;color:#fff;font-size:22px;font-weight:900;letter-spacing:6px;text-align:center;text-transform:lowercase;}
@@ -1180,6 +1206,10 @@ gap:12px;align-items:center;border:1px solid var(--line);border-radius:14px;back
         <div class="ic" data-ico="vs"></div>
         <div><div class="tn">1:1 대전</div><div class="td">코드로 친구와 실시간 대결</div></div>
       </div>
+      <div class="tile" data-go="friend">
+        <div class="ic" data-ico="friend"></div>
+        <div><div class="tn">친구 <span class="mbadge" id="frBadge" style="display:none;"></span></div><div class="td">아이디로 친구 추가 · 1:1 신청</div></div>
+      </div>
       <div class="tile" data-go="derby">
         <div class="ic" data-ico="bat"></div>
         <div><div class="tn">홈런 레이스</div><div class="td">공 20개로 홈런을 쳐서 BP 받기</div></div>
@@ -1243,6 +1273,25 @@ gap:12px;align-items:center;border:1px solid var(--line);border-radius:14px;back
     <h1 class="title">1:1 대전</h1>
     <p class="sub">코드를 만들어 친구와 리그 모드와 같은 경기를 해요. 수비 때는 내가 던지고, 공격 때는 친구가 던진 공을 내가 쳐요.</p>
     <div id="pvpBody"></div>
+  </div>
+
+  <!-- FRIEND -->
+  <div id="scr-friend" class="screen">
+    <button class="btn ghost sm back" data-go="home">‹ 홈</button>
+    <div style="height:34px"></div>
+    <div class="eyebrow">FRIENDS</div>
+    <h1 class="title">친구</h1>
+    <p class="sub">계정 아이디로 친구를 추가하고, 접속 중인 친구에게 1:1 대전을 신청해요.</p>
+    <div id="frBody"></div>
+  </div>
+
+  <!-- WATCH -->
+  <div id="scr-watch" class="screen">
+    <button class="btn ghost sm back" id="wBack">‹ 나가기</button>
+    <div style="height:34px"></div>
+    <div class="eyebrow">SPECTATE</div>
+    <h1 class="title">1:1 관전</h1>
+    <div id="watchBody"></div>
   </div>
 
   <!-- QUEST -->
@@ -1617,6 +1666,18 @@ gap:12px;align-items:center;border:1px solid var(--line);border-radius:14px;back
   <div class="plist" id="pickList" style="max-height:56vh;"></div>
   <button class="btn ghost" id="pickNone" style="margin-top:10px;">이 자리 비우기</button>
 </div></div>
+<div id="frInvStage" class="modal"><div class="modal-box">
+  <div class="modal-head"><b>1:1 대전 신청</b></div>
+  <p id="frInvTxt" style="margin:6px 0 14px;line-height:1.6;"></p>
+  <div class="row"><button class="btn ghost" id="frInvNo" style="flex:1;">거절</button><button class="btn gold" id="frInvYes" style="flex:1;">수락하고 시작</button></div>
+</div></div>
+<div id="spInvStage" class="modal"><div class="modal-box">
+  <div class="modal-head"><b>관전자 초대</b><button class="btn ghost sm" id="spInvClose">닫기</button></div>
+  <div id="spInvBody" style="max-height:60vh;overflow:auto;"></div>
+</div></div>
+<div id="frInvBar"><div class="fib-txt" id="frInvBarTxt"></div><button type="button" class="fib-b ok" id="frInvBarOk" aria-label="수락"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg></button><button type="button" class="fib-b no" id="frInvBarNo" aria-label="거절"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round"><path d="M6.5 6.5l11 11M17.5 6.5l-11 11"/></svg></button></div>
+<button type="button" id="emoBtn" style="display:none;" aria-label="이모티콘"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="1.8" stroke-linejoin="round"><path d="M4 5.5h16a1.5 1.5 0 0 1 1.5 1.5v9a1.5 1.5 0 0 1-1.5 1.5h-8l-4.5 3.5v-3.5H4A1.5 1.5 0 0 1 2.5 16V7A1.5 1.5 0 0 1 4 5.5z" fill="rgba(255,255,255,.2)"/><circle cx="8" cy="11.5" r="1.1" fill="#fff" stroke="none"/><circle cx="12" cy="11.5" r="1.1" fill="#fff" stroke="none"/><circle cx="16" cy="11.5" r="1.1" fill="#fff" stroke="none"/></svg></button>
+<div id="emoPanel"><div class="emo-grid" id="emoGrid"></div><button type="button" class="btn ghost sm" id="emoSpInv" style="width:100%;margin-top:6px;">관전자 초대</button></div>
 <div id="mgrStage" class="modal"><div class="modal-box">
   <div class="modal-head"><b>감독 고르기</b><button class="btn ghost sm" id="mgrClose">닫기</button></div>
   <div class="mgr-chips" id="mgrChips"></div>
@@ -3255,6 +3316,7 @@ function go(name){
   try{ applyLand(); }catch(e){}
   screens[name].scrollTop=0;
   if(name==='home')renderHome();
+  if(name==='friend'){ frRender(); frStart().then(()=>frRefresh()); }
   if(name==='scout')renderScout();
   if(name==='practice') renderPractice();
   if(name==='derby') renderDerby();
@@ -3314,7 +3376,8 @@ setTimeout(()=>{ const b=document.getElementById('pvBack'); if(b) b.onclick=()=>
    코드로 방을 만들고, 매 공마다: 투수 쪽이 리그 모드처럼 구종·코스·게이지로 던지면 그 공이 상대 화면에 날아가고,
    타자 쪽이 리그 모드처럼 타이밍 맞춰 스윙해 결과를 정해 돌려보낸다. 두 화면은 같은 결과를 같은 순서로 적용한다.
    메시지는 빠질 수 있어서: 공(투구)은 결과를 받을 때까지, 시작 신호는 응답을 받을 때까지 다시 보낸다. */
-const PV={room:null,r:null,code:null,host:false,peerOther:null,timer:null,unsub:[],maxInn:3,status:'',myT:null,oppT:null,started:false,final:null};
+const PV={room:null,r:null,code:null,host:false,peerOther:null,timer:null,unsub:[],maxInn:3,status:'',myT:null,oppT:null,started:false,final:null,extra:false,specs:{},watch:false,wv:null,tok:null,spT:null,seen:{}};
+const SPEC_MAX=2;   // 관전자 최대 2명
 const PV_INN=[3,5,9];
 function pvRand(n){ const a='abcdefghjkmnpqrstuvwxyz23456789'; let s=''; for(let i=0;i<n;i++) s+=a[Math.floor(Math.random()*a.length)]; return s; }
 const r1=v=>Math.round((+v||0)*10)/10;
@@ -3345,7 +3408,7 @@ const P2P_ROOM={ join:async(name)=>{ await p2pLoad(); const id='weuspb-'+name, h
       const gone=()=>{ const k=conns.indexOf(c); if(k<0) return; conns.splice(k,1); peersFn.forEach(fn=>{ try{ fn({joined:[],left:[{peer:c.peer}]}); }catch(e){} }); if(!dead&&errFn&&!host) errFn(); };
       c.on('close',gone); c.on('error',gone); };
     peer.on('disconnected',()=>{ if(!dead){ try{ peer.reconnect(); }catch(e){} } });   // 중계 서버와 끊겨도 이미 맺은 연결은 유지, 다시 붙기만 시도
-    if(host) peer.on('connection',c=>{ if(conns.length>=1){ try{ c.close(); }catch(e){} return; } setup(c); });
+    if(host) peer.on('connection',c=>{ if(conns.length>=1+SPEC_MAX){ try{ c.close(); }catch(e){} return; } setup(c); });
     else await new Promise((res,rej)=>{ const c=peer.connect(id,{reliable:true}); const to=setTimeout(()=>{ try{ peer.destroy(); }catch(e){} rej({code:'no_room',msg:'그 코드의 방을 찾지 못했어요. 코드를 확인하고, 방장이 대기 화면에 있는지 봐 주세요.'}); },12000);
       c.on('open',()=>{ clearTimeout(to); setup(c); res(); });
       peer.on('error',e=>{ if(e&&e.type==='peer-unavailable'){ clearTimeout(to); try{ peer.destroy(); }catch(x){} rej({code:'no_room',msg:'그 코드의 방을 찾지 못했어요. 코드를 확인해 주세요.'}); } }); });
@@ -3359,30 +3422,190 @@ async function pvOpenRoom(code){
   if(PV.room===P2P_ROOM) pvStatus(PV.host?'방을 만드는 중...':'방을 찾는 중...');
   try{ PV.r=await PV.room.join('pvp-'+code); }catch(e){ pvStatus(e&&e.msg?e.msg:'방에 들어가지 못했어요 ('+(e&&e.code||'오류')+'). 잠시 후 다시 해 주세요.'); return false; }
   PV.code=code;
-  PV.unsub.push(PV.r.on('pvp',pvOnMsg,()=>pvStatus('연결이 끊겼어요. 나갔다가 다시 들어와 주세요.')));
-  PV.unsub.push(PV.r.onPeers(ch=>{ if(PV.peerOther&&ch.left.some(p=>p.peer===PV.peerOther)){ pvStatus('상대가 나갔어요.'); if(G&&G.pvp&&!G.over) toast('상대가 경기 화면을 떠났어요. 다시 들어오면 이어서 해요.'); } }));
+  PV.unsub.push(PV.r.on('pvp',pvOnMsg,()=>{ if(PV.watch) return spLost(); pvStatus('연결이 끊겼어요. 나갔다가 다시 들어와 주세요.'); }));
+  PV.unsub.push(PV.r.onPeers(ch=>{ (ch.left||[]).forEach(p=>{ if(PV.specs[p.peer]){ toast(`${PV.specs[p.peer]}님이 관전을 그만뒀어요.`); delete PV.specs[p.peer]; } });
+    if(PV.watch&&(ch.left||[]).length&&!PV.host){ spLost(); }
+    if(PV.peerOther&&ch.left.some(p=>p.peer===PV.peerOther)){ pvStatus('상대가 나갔어요.'); if(G&&G.pvp&&!G.over) toast('상대가 경기 화면을 떠났어요. 다시 들어오면 이어서 해요.'); } }));
   return true; }
-async function pvCreate(){ pvReset(); PV.host=true; PV.myT=pvPack(); const code=pvRand(5);
+async function pvCreate(code0){ pvReset(); PV.host=true; PV.myT=pvPack(); const code=typeof code0==='string'?code0:pvRand(5);
   if(!(await pvOpenRoom(code))) return; pvStatus('친구가 코드를 입력하길 기다리는 중...'); renderPvp();
-  PV.timer=setInterval(()=>{ if(PV.oppT&&!PV.acked) pvSend({t:'start',host:PV.myT,guest:PV._guestRaw,maxInn:PV.maxInn}); },1500); }
-async function pvJoin(){ const v=(document.getElementById('pvCodeIn').value||'').trim().toLowerCase().replace(/[^a-z0-9]/g,'');
+  PV.timer=setInterval(()=>{ if(PV.oppT&&!PV.acked) pvSend({t:'start',host:PV.myT,guest:PV._guestRaw,maxInn:PV.maxInn,extra:PV.extra}); },1500);
+  PV.spT=setInterval(()=>{ if(PV.r&&PV.host&&Object.keys(PV.specs).length) pvSend({t:'sp',v:spView()}); },1000); }
+async function pvJoin(code0){ const v=(typeof code0==='string'?code0:(document.getElementById('pvCodeIn').value||'')).trim().toLowerCase().replace(/[^a-z0-9]/g,'');
   if(v.length<4){ toast('코드를 정확히 입력해 주세요.'); return; }
   pvReset(); PV.host=false; PV.myT=pvPack();
   if(!(await pvOpenRoom(v))) return; pvStatus('방장에게 연결하는 중...'); renderPvp();
   const hello=()=>pvSend({t:'hello',team:PV.myT}); hello();
   PV.timer=setInterval(()=>{ if(!PV.started) hello(); },1500); }
-function pvReset(){ if(PV.timer) clearInterval(PV.timer); PV.unsub.forEach(u=>{ try{u();}catch(e){} }); PV.unsub=[]; if(PV.r){ PV.r.leave().catch(()=>{}); }
-  Object.assign(PV,{r:null,code:null,host:false,peerOther:null,timer:null,status:'',myT:null,oppT:null,started:false,acked:false,_guestRaw:null});
+/* ============ 친구: 계정 아이디로 추가, 친구창에서 1:1 신청 ============
+   서버가 없어서 PeerJS(WebRTC) 공개 중계로 "weuspb-u-아이디" 주소를 열어 둠. 친구에게 직접 연결해 확인·신청을 주고받음 */
+const FR={peer:null,acc:null,st:'',online:{},stat:{},inv:null,inn:3};
+function frNorm(id){ return String(id||'').trim().toLowerCase().replace(/[^a-z0-9_-]/g,''); }
+function frPid(id){ return 'weuspb-u-'+frNorm(id); }
+function frList(){ if(!Array.isArray(state.friends)) state.friends=[]; return state.friends; }
+function frReqs(){ if(!Array.isArray(state.frReq)) state.frReq=[]; return state.frReq; }
+function frStop(){ if(FR.peer){ try{ FR.peer.destroy(); }catch(e){} } FR.peer=null; FR.acc=null; FR.st=''; FR.online={}; }
+async function frStart(){ if(!state||!ACC||ACC==='guest'){ frStop(); return; } if(FR.peer&&FR.acc===ACC) return; frStop(); FR.acc=ACC; FR.st='connecting';
+  try{ await p2pLoad(); }catch(e){ FR.st='연결 도구를 불러오지 못했어요. 인터넷 연결을 확인해 주세요.'; frRender(); return; }
+  if(FR.acc!==ACC) return; let p; try{ p=new Peer(frPid(ACC)); }catch(e){ FR.st='친구 연결을 열지 못했어요.'; frRender(); return; }
+  FR.peer=p;
+  p.on('open',()=>{ FR.st='online'; frRender(); frRefresh(); });
+  p.on('error',e=>{ const t=e&&e.type; if(t==='peer-unavailable') return;
+    FR.st=t==='unavailable-id'?'같은 아이디가 다른 기기나 창에서 접속 중이라 친구 연결을 열 수 없어요. 다른 창을 닫고 다시 들어와 주세요.':`친구 서버에 연결하지 못했어요 (${t||'오류'}).`; frRender(); });
+  p.on('disconnected',()=>{ if(FR.peer===p){ try{ p.reconnect(); }catch(e){} } });
+  p.on('connection',c=>{ c.on('data',d=>frOnMsg(d,c)); }); }
+function frSend(id,msg,ms){ return new Promise(res=>{ if(!FR.peer||FR.st!=='online') return res(null); let done=false, c;
+  const fin=v=>{ if(done) return; done=true; clearTimeout(to); setTimeout(()=>{ try{ c&&c.close(); }catch(e){} },400); res(v); };
+  const to=setTimeout(()=>fin(null),ms||6000);
+  try{ c=FR.peer.connect(frPid(id),{reliable:true}); }catch(e){ return fin(null); }
+  c.on('open',()=>{ try{ c.send(Object.assign({from:ACC},msg)); }catch(e){ fin(null); } });
+  c.on('data',d=>fin(d||{})); c.on('error',()=>fin(null)); }); }
+function frMyStatus(){ const act=n=>screens[n]&&screens[n].classList.contains('active');
+  if(PV.watch) return '관전 중'; if(G&&!G.over&&G.pvp) return '1:1 대전 중'; if(PV.r&&PV.host) return '1:1 방 대기 중';
+  if((G&&!G.over&&G.hr)||act('derby')) return '홈런 레이스 중'; if((G&&!G.over&&G.prac)||act('practice')) return '연습 중';
+  if((G&&!G.over)||act('match')||act('matchsetup')) return '리그 모드 중'; return '접속 중'; }
+function frBusy(){ const act=n=>screens[n]&&screens[n].classList.contains('active'); return !!((G&&!G.over)||act('derby')||act('practice')||act('match')||PV.r); }
+function frStTxt(id){ const o=FR.online[id]; return o===true?`<i class="fr-dot on"></i>${esc(FR.stat[id]||'접속 중')}`:o===false?'<i class="fr-dot"></i>오프라인':'<i class="fr-dot wait"></i>확인 중'; }
+function frTeamName(){ const tm=TEAMS.find(x=>x.id===state.team); return tm?tm.full:''; }
+function frOnMsg(d,c){ if(!d||typeof d!=='object'||!state) return; const from=frNorm(d.from); if(!from||from===frNorm(ACC)) return;
+  const reply=o=>{ try{ c.send(Object.assign({from:ACC},o)); }catch(e){} };
+  if(d.t==='ping'){ reply({t:'pong',team:frTeamName(),st:frMyStatus()}); return; }
+  if(d.t==='req'){ reply({t:'ok'}); if(!frList().some(x=>x.id===from)&&!frReqs().includes(from)){ frReqs().push(from); saveGame(); toast(`${from}님이 친구 신청을 보냈어요. 친구 창에서 수락할 수 있어요.`); try{ renderHome(); }catch(e){} }
+    else if(frList().some(x=>x.id===from)) FR.online[from]=true; frRender(); return; }
+  if(d.t==='acc'){ reply({t:'ok'}); if(!frList().some(x=>x.id===from)){ frList().push({id:from,at:Date.now()}); saveGame(); } FR.online[from]=true; toast(`${from}님이 친구 신청을 수락했어요.`); frRender(); return; }
+  if(d.t==='inv'){ reply({t:'ok'}); FR.online[from]=true; frShowInv({from,code:String(d.code||'').slice(0,8),inn:+d.inn||3,team:String(d.team||'').slice(0,20),role:d.role==='watch'?'watch':'play'}); return; }
+  if(d.t==='dec'){ reply({t:'ok'}); toast(`${from}님이 1:1 신청을 거절했어요.`); if(PV.host&&PV.r&&!PV.oppT){ pvReset(); renderPvp(); } return; }
+  reply({t:'ok'}); }
+async function frRefresh(){ if(!state) return; const L=frList(); if(!L.length||FR.st!=='online'){ frRender(); return; }
+  L.forEach(x=>{ if(FR.online[x.id]==null) FR.online[x.id]=undefined; }); frRender();
+  await Promise.all(L.map(async x=>{ const r=await frSend(x.id,{t:'ping'},5000); FR.online[x.id]=!!(r&&r.t==='pong'); if(r&&r.team) x.team=String(r.team).slice(0,20); FR.stat[x.id]=r&&r.st?String(r.st).slice(0,16):''; }));
+  frRender(); }
+async function frAdd(){ const inp=document.getElementById('frIdIn'), id=frNorm(inp&&inp.value);
+  if(!id){ toast('친구의 계정 아이디를 입력해 주세요.'); return; }
+  if(id===frNorm(ACC)){ toast('내 아이디는 추가할 수 없어요.'); return; }
+  if(id==='guest'){ toast('게스트는 친구로 추가할 수 없어요.'); return; }
+  if(frList().some(x=>x.id===id)){ toast('이미 친구예요.'); return; }
+  frList().push({id,at:Date.now()}); state.frReq=frReqs().filter(x=>x!==id); saveGame(); if(inp) inp.value=''; FR.online[id]=undefined; frRender();
+  const r=await frSend(id,{t:'req'},6000); FR.online[id]=!!r; frRender();
+  toast(r?`${id}님을 친구로 추가했어요. 상대에게도 친구 신청이 갔어요.`:`${id}님을 친구로 추가했어요. 지금은 접속 중이 아니라 신청은 보내지 못했어요.`); }
+async function frAccept(id,ok){ state.frReq=frReqs().filter(x=>x!==id); if(ok&&!frList().some(x=>x.id===id)) frList().push({id,at:Date.now()}); saveGame(); frRender();
+  if(ok){ const r=await frSend(id,{t:'acc'},5000); FR.online[id]=!!r; frRender(); toast(`${id}님과 친구가 됐어요.`); } }
+function frDel(id){ state.friends=frList().filter(x=>x.id!==id); delete FR.online[id]; saveGame(); frRender(); toast(`${id}님을 친구 목록에서 지웠어요.`); }
+async function frInvite(id){ if(FR.st!=='online'){ toast('친구 연결이 아직 열리지 않았어요.'); return; }
+  if(G&&!G.over&&screens.match&&screens.match.classList.contains('active')){ toast('경기 중에는 신청할 수 없어요.'); return; }
+  PV.final=null; PV.maxInn=FR.inn; const code=pvRand(5);
+  toast(`${id}님에게 1:1 신청 중...`); await pvCreate(code); if(!PV.r){ toast('방을 만들지 못했어요. 잠시 후 다시 해 주세요.'); return; }
+  const r=await frSend(id,{t:'inv',code,inn:PV.maxInn,team:frTeamName()},7000); FR.online[id]=!!r;
+  if(!r){ pvReset(); renderPvp(); frRender(); toast(`${id}님이 지금 접속 중이 아니에요.`); return; }
+  pvStatus(`${id}님에게 1:1 신청을 보냈어요. 수락하면 바로 경기가 시작돼요. (${PV.maxInn}이닝)`); go('pvp'); }
+function frShowInv(v){ FR.inv=v; const st=document.getElementById('frInvStage'); if(!st) return;
+  const txt=v.role==='watch'?`<b>${esc(v.from)}</b>님이 1:1 대전 <b>관전</b>에 초대했어요.`:`<b>${esc(v.from)}</b>님${v.team?` (${esc(v.team)})`:''}이 <b>${v.inn}이닝</b> 1:1 대전을 신청했어요.`;
+  if(frBusy()){ const bar=document.getElementById('frInvBar'); document.getElementById('frInvBarTxt').innerHTML=txt; bar.classList.add('on'); clearTimeout(FR.barT); FR.barT=setTimeout(()=>{ if(FR.inv===v) frInvAnswer(false); },30000); try{ navigator.vibrate&&navigator.vibrate(120); }catch(e){} return; }   // 리그 모드 등을 하는 중: 위에 체크·X 알림
+  document.getElementById('frInvTxt').innerHTML=txt; document.getElementById('frInvYes').textContent=v.role==='watch'?'관전하기':'수락하고 시작';
+  st.classList.add('on'); try{ navigator.vibrate&&navigator.vibrate(120); }catch(e){} }
+async function frInvAnswer(ok){ const v=FR.inv; FR.inv=null; clearTimeout(FR.barT); document.getElementById('frInvStage').classList.remove('on'); document.getElementById('frInvBar').classList.remove('on'); if(!v) return;
+  if(!ok){ if(v.role!=='watch') frSend(v.from,{t:'dec'},4000); return; }
+  if(G&&!G.over&&!G.pvp){ G.over=true; try{ stopMeter(); }catch(e){} try{ pcStop(); }catch(e){} }   // 혼자 하던 경기는 그만두고 이동
+  if(v.role==='watch'){ if(G&&G.pvp&&!G.over){ toast('1:1 대전 중에는 관전할 수 없어요.'); return; } pvReset(); await pvWatch(v.code); return; }
+  if(G&&G.pvp&&!G.over){ toast('이미 1:1 대전 중이에요.'); return; }
+  if(G&&!G.over){ G.over=true; try{ stopMeter(); }catch(e){} }
+  PV.final=null; go('pvp'); await pvJoin(v.code); }
+function frRender(){ const b=document.getElementById('frBody'); if(!b||!state||!screens.friend||!screens.friend.classList.contains('active')) return;
+  const guest=!ACC||ACC==='guest', L=frList(), R=frReqs();
+  const stTxt=guest?'<span class="warn">게스트는 친구 기능을 쓸 수 없어요. 아이디로 로그인해 주세요.</span>':FR.st==='online'?'<span class="ok">연결됨</span>':FR.st==='connecting'||!FR.st?'연결하는 중...':`<span class="warn">${esc(FR.st)}</span>`;
+  const dot=frStTxt;
+  b.innerHTML=`<div class="pv-card"><div class="pv-h">내 아이디</div><div class="fr-me"><b>${esc(guest?'게스트':ACC)}</b><span>${stTxt}</span></div>
+      <p class="hint" style="margin:6px 0 0;">친구에게 이 아이디를 알려 주세요. 친구가 아이디를 입력하면 친구 신청이 와요.</p></div>
+    <div class="pv-card"><div class="pv-h">친구 추가</div><div class="fr-add"><input id="frIdIn" class="pv-in" maxlength="20" placeholder="친구 계정 아이디" autocomplete="off" autocapitalize="off" ${guest?'disabled':''}><button class="btn primary" id="frAddBtn" ${guest?'disabled':''}>추가</button></div></div>
+    ${R.length?`<div class="pv-card"><div class="pv-h">받은 친구 신청 <small>${R.length}</small></div>${R.map(id=>`<div class="fr-row"><b>${esc(id)}</b><div class="fr-btns"><button class="btn gold sm" data-fra="${esc(id)}">수락</button><button class="btn ghost sm" data-frr="${esc(id)}">거절</button></div></div>`).join('')}</div>`:''}
+    <div class="pv-card"><div class="pv-h" style="display:flex;justify-content:space-between;align-items:center;">친구 <small>${L.length}명</small><button class="btn ghost sm" id="frRef">새로고침</button></div>
+      <div class="pv-seg" style="margin:6px 0 8px;">${PV_INN.map(n=>`<button class="btn ${FR.inn===n?'gold':'ghost'}" data-frinn="${n}">${n}이닝</button>`).join('')}</div>
+      ${extraSw('frExtra')}
+      ${L.length?L.map(x=>`<div class="fr-row"><div class="fr-who"><b>${esc(x.id)}</b><small>${dot(x.id)}${x.team?` · ${esc(x.team)}`:''}</small></div><div class="fr-btns"><button class="btn primary sm" data-frv="${esc(x.id)}" ${FR.online[x.id]===false?'disabled':''}>1:1 신청</button><button class="btn ghost sm" data-frd="${esc(x.id)}">삭제</button></div></div>`).join(''):'<p class="hint">아직 친구가 없어요. 친구의 계정 아이디를 입력해 추가해 보세요.</p>'}
+      <p class="hint" style="margin-top:8px;">두 사람 모두 게임을 켜 두고 있어야 접속 중으로 보이고 1:1 신청을 받을 수 있어요. 경기는 1:1 대전과 같고, 신청한 사람이 방장(원정)이에요.</p></div>`;
+  const ab=document.getElementById('frAddBtn'); if(ab) ab.onclick=frAdd;
+  const ii=document.getElementById('frIdIn'); if(ii) ii.onkeydown=e=>{ if(e.key==='Enter') frAdd(); };
+  document.getElementById('frRef').onclick=()=>{ FR.online={}; frRefresh(); };
+  b.querySelectorAll('[data-frinn]').forEach(e=>e.onclick=()=>{ FR.inn=+e.dataset.frinn; frRender(); });
+  { const x=document.getElementById('frExtra'); if(x) x.onclick=()=>{ PV.extra=!PV.extra; frRender(); }; }
+  b.querySelectorAll('[data-frv]').forEach(e=>e.onclick=()=>frInvite(e.dataset.frv));
+  b.querySelectorAll('[data-frd]').forEach(e=>e.onclick=()=>frDel(e.dataset.frd));
+  b.querySelectorAll('[data-fra]').forEach(e=>e.onclick=()=>frAccept(e.dataset.fra,true));
+  b.querySelectorAll('[data-frr]').forEach(e=>e.onclick=()=>frAccept(e.dataset.frr,false)); }
+/* ============ 관전 (최대 2명): 방장이 1초마다 경기 상태를 보내고, 관전자는 점수판·중계로 봄 ============ */
+function spView(){ const base={code:PV.code,inn0:PV.maxInn,extra:!!PV.extra,specs:Object.values(PV.specs),away:(PV.myT&&PV.myT.tn)||'방장 팀',home:(PV.oppT&&PV.oppT.tn)||null,hostId:ACC&&ACC!=='guest'?ACC:'방장'};
+  if(!G||!G.pvp||!PV.started) return Object.assign(base,{wait:true});
+  const A=1,H=0;   // 방장 화면: lineups[1]=방장(원정), [0]=참가자(홈)
+  const logs=[...document.getElementById('matchLog').children].slice(0,8).map(e=>e.textContent.slice(0,90));
+  return Object.assign(base,{inn:G.inn,rt:pvRealTop(),o:G.outs,b:G.balls,s:G.strikes,bs:G.bases.map(Boolean),sc:[G.score[A],G.score[H]],ln:[(G.line[A]||[]).slice(),(G.line[H]||[]).slice()],h:[G.hits[A],G.hits[H]],
+    bat:nm(curBatter()),pit:nm(curPitcher()),log:logs,over:!!G.over}); }
+async function pvWatch(code0){ const v=String(code0||(document.getElementById('pvCodeIn')||{}).value||'').trim().toLowerCase().replace(/[^a-z0-9]/g,'');
+  if(v.length<4){ toast('코드를 정확히 입력해 주세요.'); return; }
+  pvReset(); PV.host=false; PV.watch=true; PV.tok=pvRand(6);
+  if(!(await pvOpenRoom(v))){ const st=PV.status; PV.watch=false; go('pvp'); pvStatus(st); return; }
+  PV.watch=true; pvStatus('관전 연결 중...'); go('watch'); renderWatch();
+  const hi=()=>pvSend({t:'watch',name:ACC&&ACC!=='guest'?ACC:'게스트',tok:PV.tok}); hi();
+  PV.timer=setInterval(()=>{ if(!PV.wv||PV.wv.wait) hi(); },1500); }
+function spOnMsg(d){ if(d.t==='wfull'&&d.tok===PV.tok){ toast(`관전자가 이미 ${SPEC_MAX}명이에요.`); pvReset(); go('pvp'); return; }
+  if(d.t==='wok'&&d.tok===PV.tok){ PV.wv=d.v; PV.wok=true; renderWatch(); return; }
+  if(d.t==='sp'&&d.v){ PV.wv=d.v; renderWatch(); return; }
+  if(d.t==='quit'&&PV.wv){ PV.wv.over=true; PV.wv.quit=true; renderWatch(); } }
+function spLost(){ if(!PV.watch) return; if(!PV.wok){ toast(`관전할 수 없어요. 관전자가 이미 ${SPEC_MAX}명이거나 방이 닫혔어요.`); pvReset(); go('pvp'); return; } if(PV.wv) PV.wv.lost=true; renderWatch(); }
+function spLeave(){ if(PV.r) pvSend({t:'unwatch'}); pvReset(); go('home'); }
+function renderWatch(){ const b=document.getElementById('watchBody'); if(!b) return; const v=PV.wv;
+  if(!v){ b.innerHTML=`<div class="pv-card" style="text-align:center;"><p class="hint">${esc(PV.status||'방장에게 연결하는 중...')}</p><button class="btn ghost" id="wLeave">나가기</button></div>`; document.getElementById('wLeave').onclick=spLeave; return; }
+  const sp=`관전자 ${v.specs.length}/${SPEC_MAX}${v.specs.length?' · '+v.specs.map(esc).join(', '):''}`;
+  if(v.wait){ b.innerHTML=`<div class="pv-card" style="text-align:center;"><div class="pv-h">경기 시작 전</div><p class="hint">${esc(v.hostId)}님의 방 (코드 ${esc(v.code)}) · ${v.inn0}이닝 · 연장전 ${v.extra?'있음':'없음'}<br>상대가 들어오면 경기가 시작돼요.</p><p class="hint">${sp}</p><button class="btn ghost" id="wLeave">관전 그만하기</button></div>`; document.getElementById('wLeave').onclick=spLeave; return; }
+  const cols=Math.max(v.inn0,v.inn), cell=(L,k)=>L&&L[k]!=null?L[k]:'';
+  const row=(nmx,k,at)=>`<tr class="${at?'at':''}"><th>${esc(nmx||'')}</th>${Array.from({length:cols},(_,i)=>`<td>${cell(v.ln[k],i)}</td>`).join('')}<td class="r">${v.sc[k]}</td><td>${v.h[k]}</td></tr>`;
+  const dots=(n,m,c)=>Array.from({length:m},(_,i)=>`<i class="${i<n?c:''}"></i>`).join('');
+  b.innerHTML=`<div class="pv-card w-top"><div class="w-sc"><div><small>원정</small><b>${esc(v.away)}</b><em>${v.sc[0]}</em></div><span>:</span><div><small>홈</small><b>${esc(v.home||'')}</b><em>${v.sc[1]}</em></div></div>
+      <div class="w-st">${v.over?(v.quit?'<b class="warn">한 명이 경기를 나갔어요</b>':`<b>경기 종료</b> ${v.sc[0]>v.sc[1]?esc(v.away)+' 승리':v.sc[0]<v.sc[1]?esc(v.home)+' 승리':'무승부'}`):`<b>${v.inn}회${v.rt?'초':'말'}</b> · 타자 <b>${esc(v.bat)}</b> · 투수 <b>${esc(v.pit)}</b>`}</div>
+      <div class="w-ct"><div class="fh-dia w-dia"><i class="b2${v.bs[1]?' on':''}"></i><i class="b3${v.bs[2]?' on':''}"></i><i class="b1${v.bs[0]?' on':''}"></i></div><div class="w-bso"><div>B ${dots(v.b,3,'b')}</div><div>S ${dots(v.s,2,'s')}</div><div>O ${dots(v.o,3,'o')}</div></div></div></div>
+    <div class="pv-card" style="overflow-x:auto;"><table class="w-line"><tr><th></th>${Array.from({length:cols},(_,i)=>`<td>${i+1}</td>`).join('')}<td class="r">R</td><td>H</td></tr>${row(v.away,0,v.rt)}${row(v.home,1,!v.rt)}</table></div>
+    <div class="pv-card"><div class="pv-h">중계</div><div class="w-log">${(v.log||[]).map(x=>`<div>${esc(x)}</div>`).join('')}</div></div>
+    <p class="hint">${sp} · ${v.inn0}이닝 · 연장전 ${v.extra?'있음':'없음'}${v.lost?' · <span class="warn">연결이 끊겼어요</span>':''}</p>
+    <button class="btn ghost" id="wLeave" style="width:100%;">관전 그만하기</button>`;
+  document.getElementById('wLeave').onclick=spLeave; }
+/* 관전 초대 창: 코드 + 접속 중인 친구 */
+function openSpInv(){ if(!PV.r||!PV.host){ toast('방을 만든 사람만 관전자를 초대할 수 있어요.'); return; }
+  const st=document.getElementById('spInvStage'), b=document.getElementById('spInvBody'), L=(state&&Array.isArray(state.friends))?state.friends:[], n=Object.keys(PV.specs).length;
+  b.innerHTML=`<p class="hint" style="text-align:left;margin:0 0 8px;">관전자는 최대 ${SPEC_MAX}명이에요. 지금 ${n}명${n?' ('+Object.values(PV.specs).map(esc).join(', ')+')':''}.</p>
+    <div class="pv-card" style="text-align:center;"><div class="pv-h">관전 코드</div><div class="pv-code">${esc(PV.code)}</div><p class="hint" style="margin:0;">1:1 대전 화면에서 이 코드를 넣고 <b>관전하기</b>를 누르면 돼요.</p></div>
+    <div class="pv-h" style="margin:4px 0 6px;">친구에게 관전 초대</div>
+    ${L.length?L.map(x=>`<div class="fr-row"><div class="fr-who"><b>${esc(x.id)}</b><small>${frStTxt(x.id)}</small></div><button class="btn primary sm" data-spi="${esc(x.id)}" ${n>=SPEC_MAX||FR.online[x.id]===false?'disabled':''}>관전 초대</button></div>`).join(''):'<p class="hint">친구가 없어요. 친구 창에서 추가해 주세요.</p>'}`;
+  b.querySelectorAll('[data-spi]').forEach(e=>e.onclick=async()=>{ e.disabled=true; e.textContent='보내는 중...'; const r=await frSend(e.dataset.spi,{t:'inv',role:'watch',code:PV.code,inn:PV.maxInn,team:frTeamName()},7000);
+    FR.online[e.dataset.spi]=!!r; toast(r?`${e.dataset.spi}님에게 관전 초대를 보냈어요.`:`${e.dataset.spi}님이 지금 접속 중이 아니에요.`); e.textContent=r?'보냄':'관전 초대'; if(!r) e.disabled=false; });
+  st.classList.add('on'); }
+/* ============ 이모티콘 (1:1 대전·관전) ============ */
+const EMOS=['👋','👍','👎','👶🏻','⚾️','🥇','💢'];
+function emoSend(k){ if(!PV.r) return; const d={t:'emo',e:k|0,who:ACC&&ACC!=='guest'?ACC:'게스트',n:pvRand(8)}; PV.seen[d.n]=1; pvSend(d); emoShow(d,true); emoPanel(false); }
+function emoShow(d,mine){ const e=EMOS[d.e|0]; if(!e) return; const el=document.createElement('div'); el.className='emo-pop'+(mine?' mine':'');
+  el.innerHTML=`<span class="emo-big">${e}</span><small>${esc(String(d.who||'').slice(0,16))}</small>`; document.body.appendChild(el); setTimeout(()=>el.remove(),2600); }
+function emoPanel(on){ const p=document.getElementById('emoPanel'); if(!p) return; p.classList.toggle('on',on); }
+function emoSync(){ const btn=document.getElementById('emoBtn'); if(!btn) return; const inMatch=G&&G.pvp&&!G.over&&screens.match&&screens.match.classList.contains('active'), inWatch=PV.watch&&screens.watch&&screens.watch.classList.contains('active');
+  const on=!!(PV.r&&(inMatch||inWatch)); btn.style.display=on?'':'none'; if(!on) emoPanel(false);
+  const sb=document.getElementById('emoSpInv'); if(sb) sb.style.display=PV.host?'':'none'; }
+setInterval(emoSync,500);
+function pvReset(){ if(PV.timer) clearInterval(PV.timer); if(PV.spT) clearInterval(PV.spT); PV.unsub.forEach(u=>{ try{u();}catch(e){} }); PV.unsub=[]; if(PV.r){ PV.r.leave().catch(()=>{}); }
+  Object.assign(PV,{r:null,code:null,host:false,peerOther:null,timer:null,status:'',myT:null,oppT:null,started:false,acked:false,_guestRaw:null,specs:{},wok:false,watch:false,wv:null,tok:null,spT:null,seen:{}});
   if(G&&G.pvp&&G.pvp.rt) clearInterval(G.pvp.rt); }
 function pvLeave(){ if(PV.r) pvSend({t:'quit'}); if(G&&G.pvp){ G.over=true; stopMeter(); } pvReset(); PV.final=null; go('home'); }
 function pvOnMsg(m){ const d=m.data||{}; if(!d||typeof d!=='object'||m.sameTab) return;
+  if(d.t==='emo'){ if(d.n&&PV.seen[d.n]) return; if(d.n) PV.seen[d.n]=1; emoShow(d); if(PV.host) pvSend(d); return; }   // 방장이 모두에게 다시 전함
+  if(PV.watch){ spOnMsg(d); return; }
+  if(d.t==='watch'){ if(!PV.host) return; const nmx=String(d.name||'관전자').slice(0,16);
+    if(PV.specs[m.peer]||Object.keys(PV.specs).length<SPEC_MAX){ const nw=!PV.specs[m.peer]; PV.specs[m.peer]=nmx; pvSend({t:'wok',tok:d.tok,v:spView()}); if(nw){ toast(`${nmx}님이 관전을 시작했어요. (관전자 ${Object.keys(PV.specs).length}/${SPEC_MAX})`); try{ renderPvp(); }catch(e){} } }
+    else pvSend({t:'wfull',tok:d.tok}); return; }
+  if(d.t==='unwatch'){ if(PV.specs[m.peer]){ delete PV.specs[m.peer]; try{ renderPvp(); }catch(e){} } return; }
+  if(PV.specs[m.peer]) return;   // 관전자의 다른 메시지는 무시
   if(PV.peerOther&&m.peer!==PV.peerOther) return;   // 세 번째 사람은 무시
   if(PV.host){
     if(d.t==='hello'&&d.team&&Array.isArray(d.team.b)){ PV.peerOther=m.peer; PV._guestRaw=d.team; PV.oppT=pvUnpack(d.team);
-      pvSend({t:'start',host:PV.myT,guest:d.team,maxInn:PV.maxInn}); if(!PV.started){ PV.started=true; toast('상대가 들어왔어요. 경기 시작!'); pvStartGame(); } return; }
+      pvSend({t:'start',host:PV.myT,guest:d.team,maxInn:PV.maxInn,extra:PV.extra}); if(!PV.started){ PV.started=true; toast('상대가 들어왔어요. 경기 시작!'); pvStartGame(); } return; }
     if(d.t==='go'){ PV.acked=true; return; }
   } else {
-    if(d.t==='start'&&d.host&&!PV.started){ PV.peerOther=m.peer; PV.oppT=pvUnpack(d.host); PV.maxInn=PV_INN.includes(d.maxInn)?d.maxInn:3; PV.started=true; pvSend({t:'go'}); pvStartGame(); return; }
+    if(d.t==='start'&&d.host&&!PV.started){ PV.peerOther=m.peer; PV.oppT=pvUnpack(d.host); PV.maxInn=PV_INN.includes(d.maxInn)?d.maxInn:3; PV.extra=!!d.extra; PV.started=true; pvSend({t:'go'}); pvStartGame(); return; }
     if(d.t==='start'){ pvSend({t:'go'}); return; }
   }
   if(!G||!G.pvp||G.id!==G.pvp.gid) return;
@@ -3402,9 +3625,9 @@ function pvStartGame(){ try{ FH.menu=false; }catch(e){}
      bIdx:[0,0],pc:[0,0],oppTeam:{id:op.id,full:op.tn},
      st:{myK:0,myRA:0,myHR:0,myBB:0},sel:{type:null,zone:null,chase:null},phase:'idle',full:false,stage:state.stage,cold:false,
      pvp:{host:PV.host,gid:GID,seq:1,res:{},pend:null,q:null,flown:false,myStaff:[me.sp,...me.pen],oppStaff:op.p,pi:0}};
-  G.pvp.gid=G.id; PV.final=null;
+  G.pvp.gid=G.id; PV.final=null; G.pvExtra=!!PV.extra;
   logClear(); go('match');
-  log(`<b>1:1 대전</b> · ${PV.host?'원정':'홈'} · 상대 <b>${esc(op.tn)}</b> · ${G.maxInn}이닝 (코드 ${PV.code})`);
+  log(`<b>1:1 대전</b> · ${PV.host?'원정':'홈'} · 상대 <b>${esc(op.tn)}</b> · ${G.maxInn}이닝${PV.extra?' · 연장전 있음':' · 연장전 없음'} (코드 ${PV.code})`);
   G.pvp.rt=setInterval(()=>{ if(!G||!G.pvp||G.over){ return; } const p=G.pvp.pend; if(p&&!G.pvp.res[p.seq]) pvSend(p);   // 결과가 안 오면 같은 공을 다시 보냄
     if(PV.host) pvSend({t:'st',seq:G.pvp.seq,idle:pvIdle(true),st:pvSnap()}); },1500);   // 방장: 상태를 주기적으로 알려 줌
   beginHalf();
@@ -3502,19 +3725,23 @@ function renderPvp(){ const b=document.getElementById('pvpBody'); if(!b||!state)
     document.getElementById('pvAgain').onclick=()=>{ PV.final=null; pvReset(); renderPvp(); }; return; }
   if(!PV.r){ b.innerHTML=`<div class="pv-card"><div class="pv-h">방 만들기</div><p class="hint" style="margin:4px 0 10px;">코드를 만들어 친구에게 알려 주세요. 방장이 원정(초 공격)이에요.</p>
       <div class="pv-seg">${PV_INN.map(n=>`<button class="btn ${PV.maxInn===n?'gold':'ghost'}" data-inn="${n}">${n}이닝</button>`).join('')}</div>
+      ${extraSw('pvExtra')}
       <button class="btn primary" id="pvCreate" style="margin-top:10px;">방 만들기</button></div>
     <div class="pv-card"><div class="pv-h">코드로 참가</div><input id="pvCodeIn" class="pv-in" maxlength="8" placeholder="예: k7m2q" autocomplete="off" autocapitalize="off">
-      <button class="btn gold" id="pvJoin" style="margin-top:10px;">참가하기</button></div>
+      <div class="row" style="margin-top:10px;"><button class="btn gold" id="pvJoin" style="flex:1;">참가하기</button><button class="btn ghost" id="pvWatchBtn" style="flex:1;">관전하기</button></div></div>
     <p class="hint" id="pvStatus">${PV.status||'경기는 리그 모드와 같아요: 수비 때는 구종·코스를 골라 게이지로 던지고, 공격 때는 친구가 던진 공을 타이밍 맞춰 쳐요. 두 사람 모두 지금 팀 설정의 라인업과 투수진을 써요.'}</p>`;
     b.querySelectorAll('[data-inn]').forEach(e=>e.onclick=()=>{ PV.maxInn=+e.dataset.inn; renderPvp(); });
-    document.getElementById('pvCreate').onclick=pvCreate; document.getElementById('pvJoin').onclick=pvJoin; return; }
+    document.getElementById('pvCreate').onclick=pvCreate; document.getElementById('pvJoin').onclick=pvJoin; document.getElementById('pvWatchBtn').onclick=()=>pvWatch();
+    { const x=document.getElementById('pvExtra'); if(x) x.onclick=()=>{ PV.extra=!PV.extra; renderPvp(); }; } return; }
   b.innerHTML=`<div class="pv-card" style="text-align:center;">${PV.host?`<div class="pv-h">방 코드</div><div class="pv-code">${PV.code}</div><p class="hint">친구에게 이 코드를 알려 주세요. 들어오면 바로 경기 화면으로 넘어가요. (${PV.maxInn}이닝)</p>`:'<div class="pv-h">연결 중</div>'}
-      <p class="hint" id="pvStatus">${PV.status}</p><button class="btn ghost" id="pvOut">나가기</button></div>`;
-  document.getElementById('pvOut').onclick=pvLeave; }
+      <p class="hint" id="pvStatus">${PV.status}</p>${PV.host?`<p class="hint">${PV.maxInn}이닝 · 연장전 ${PV.extra?'있음':'없음'} · 관전자 ${Object.keys(PV.specs).length}/${SPEC_MAX}</p><button class="btn gold" id="pvSpInv" style="margin-bottom:8px;">관전자 초대</button>`:''}<button class="btn ghost" id="pvOut">나가기</button></div>`;
+  document.getElementById('pvOut').onclick=pvLeave; { const x=document.getElementById('pvSpInv'); if(x) x.onclick=openSpInv; } }
+function extraSw(id){ return `<button type="button" class="sw-row" id="${id}"><span>연장전<small>${PV.extra?'정규 이닝 동점이면 최대 3이닝 연장':'정규 이닝 동점이면 무승부'}</small></span><i class="sw ${PV.extra?'on':''}"><b></b></i></button>`; }
 function esc(s){ return String(s==null?'':s).replace(/[&<>"']/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch])); }
 
 /* ============ 아이콘 (직접 그린 SVG) ============ */
 const ICO={
+  friend:'<svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="8.2" r="3.4" fill="rgba(255,255,255,.3)"/><path d="M2.8 19.5c.6-3.6 3-5.6 6.2-5.6s5.6 2 6.2 5.6" fill="rgba(255,255,255,.18)"/><path d="M18 8v6M15 11h6"/></svg>',
   bat:'<svg viewBox="1.5 1.5 21 21" fill="none" stroke="#fff" stroke-width="1.5" stroke-linejoin="round"><path d="M19.6 2.9c1 .9.9 2.4-.1 3.4l-8.2 8.4c-.5.5-1 .9-1.6 1.2l-3.2 1.9-1.1 1.1-1.3-1.3 1.1-1.1 1.9-3.2c.3-.6.7-1.1 1.2-1.6l8.4-8.2c1-1 2.3-1.3 2.9-.6z" fill="rgba(255,255,255,.85)"/><path d="M4.4 18.2l1.4 1.4" stroke-width="2.4" stroke-linecap="round"/><circle cx="17.3" cy="17.6" r="3" fill="rgba(255,255,255,.25)"/><path d="M15.2 16.1c.8.5 1.3 1.6 1.2 2.8M19.4 19.1c-.8-.5-1.3-1.6-1.2-2.8" stroke-width="1" stroke-linecap="round"/></svg>',
   target:'<svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="1.7"><circle cx="12" cy="12" r="8.6" fill="rgba(255,255,255,.18)"/><circle cx="12" cy="12" r="5.3"/><circle cx="12" cy="12" r="1.9" fill="#fff"/><path d="M12 1.8v3.4M12 18.8v3.4M1.8 12h3.4M18.8 12h3.4" stroke-linecap="round"/></svg>',
   scout:'<svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="1.7" stroke-linejoin="round"><rect x="3.2" y="6.2" width="10" height="14" rx="1.6" transform="rotate(-12 8.2 13.2)" fill="rgba(255,255,255,.18)"/><rect x="9.5" y="4" width="10.5" height="15" rx="1.7" fill="rgba(255,255,255,.32)"/><path d="M14.75 8.6l1.05 2.15 2.35.33-1.7 1.66.4 2.34-2.1-1.1-2.1 1.1.4-2.34-1.7-1.66 2.35-.33z" fill="#fff" stroke="none"/></svg>',
@@ -3563,7 +3790,7 @@ Object.assign(ICO,{
   q_wish:'<svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20L14.5 9.5"/><path d="M16.5 2.5l1.3 3 3.2.4-2.4 2.2.6 3.2-2.7-1.6-2.8 1.6.7-3.2-2.4-2.2 3.2-.4z" fill="#fff"/><path d="M6 6.5l.6 1.4M3.5 11l1.5-.3M20 15.5l-1.3-.8" stroke-width="1.3"/></svg>',
   q_tog:'<svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="1.6"><circle cx="7.5" cy="9" r="4" fill="rgba(255,255,255,.18)"/><circle cx="16.5" cy="9" r="4" fill="rgba(255,255,255,.18)"/><circle cx="12" cy="15.5" r="4" fill="rgba(255,255,255,.18)"/><circle cx="12" cy="9" r="1.3" fill="#fff"/><path d="M12 19.5v2.5M3 21h18" stroke-linecap="round"/></svg>'
 });
-const ICO_BG={quest:['#ffd873','#b0791a'],q_k:['#ff6a5a','#9b1d16'],q_out:['#7f93ad','#334459'],q_ha:['#ff9a6a','#a8431b'],q_hit:['#ffcf5a','#b06c0e'],q_lg:['#4fd18a','#1d6e44'],q_pvp1:['#ff7ac0','#8a2fb8'],q_syn:['#3fd0c9','#16707a'],
+const ICO_BG={friend:['#5eead4','#0f766e'],quest:['#ffd873','#b0791a'],q_k:['#ff6a5a','#9b1d16'],q_out:['#7f93ad','#334459'],q_ha:['#ff9a6a','#a8431b'],q_hit:['#ffcf5a','#b06c0e'],q_lg:['#4fd18a','#1d6e44'],q_pvp1:['#ff7ac0','#8a2fb8'],q_syn:['#3fd0c9','#16707a'],
   q_hr50:['#6ab0ff','#2552b0'],q_hr100:['#b08cff','#4a2aa8'],q_prac:['#c9e35a','#5f7a12'],q_att:['#ff8fa8','#b8304e'],q_crown:['#ffe28a','#c08410'],q_pvp10:['#ff6aa0','#6a1fa8'],q_tr:['#ffae4a','#b0520c'],q_fa:['#5fd3f0','#23709e'],
   q_shop:['#ffd873','#a87a10'],q_gs:['#ff5f5f','#7a1010'],q_file:['#8ab4ff','#344f9a'],q_tc1:['#ffd873','#b8781a'],q_tcx:['#c58cff','#5a2ab0'],q_packs:['#ff8a6a','#a8301e'],q_evo10:['#6ae0ff','#1f6ea8'],q_tc5:['#ff9adf','#9a2a8a'],q_max:['#ff6a6a','#a01a3a'],q_sym:['#7fd0ff','#2a4fa8'],q_wo9:['#ffb85a','#a0400e'],q_wish:['#a0f0ff','#3a5ad0'],q_tog:['#7ff0b0','#1f8a5a'],bat:['#ffcf5a','#c27a12'],target:['#c9e35a','#6c8a14'],scout:['#ff6a5a','#b3261e'],game:['#4fd18a','#1d7a49'],dex:['#5aa8ff','#2457b8'],lineup:['#3fd0c9','#1a7d86'],trade:['#ffae4a','#c25e10'],
   fa:['#5fd3f0','#2a7fae'],vs:['#ff7a9a','#7a2fd0'],mail:['#7fc4ff','#2f6fc0'],bag:['#ff9fd0','#b83a7e'],stadium:['#b08cff','#5b36b8'],save:['#8aa1bd','#43566e'],shop:['#ffd873','#c48a17'],gem:['#7fe7ff','#6a54ff']};
@@ -3696,7 +3923,8 @@ const ITEM_NAME={mpk:'감독팩',dpack:'1라운더팩',fa:'FA 진행권',legend:
 /* 팩 아이템: 어떤 팩인지, 열 때 구단(club)이나 구종(pitch)을 고르는지 */
 const PACK_ITEMS={dpack:{pk:'D'},pk_F:{pk:'F'},pkc_P:{pk:'P',sel:'club'},pk_T:{pk:'T'},pk_R:{pk:'R'},pkc_S:{pk:'S',sel:'club'},pkc_S2:{pk:'S2',sel:'club'},pk_N:{pk:'N'},pk_GN:{pk:'GN'},pk_V:{pk:'V'},pk_H:{pk:'H'},pk_M:{pk:'M'},pkm_K:{pk:'K',sel:'pitch'},pkc_L:{pk:'L',sel:'club'},pk_L:{pk:'L'},pkc_M:{pk:'M',sel:'club'},pkc_H:{pk:'H',sel:'club'},pk_P:{pk:'P'},pk_S:{pk:'S'},pk_S2:{pk:'S2'},pk_K:{pk:'K'},pk_myL:{pk:'L',my:true}};
 function myClub(){ return state&&state.team==='KIW'?'키움':(state&&state.team); }
-CLUBS.forEach(([id])=>{ ITEM_NAME['pkt_F_'+id]=clubFake(id).split(' ').pop()+' FA팩'; PACK_ITEMS['pkt_F_'+id]={pk:'F',club:id}; });   // 구단 고정 FA팩 (퀘스트 보상)
+CLUBS.forEach(([id])=>{ const nk=clubFake(id).split(' ').pop(); ITEM_NAME['pkt_F_'+id]=nk+' FA팩'; PACK_ITEMS['pkt_F_'+id]={pk:'F',club:id};
+  ITEM_NAME['pkt_S_'+id]=nk+' 시그니처팩 (1차)'; PACK_ITEMS['pkt_S_'+id]={pk:'S',club:id}; ITEM_NAME['pkt_S2_'+id]=nk+' 시그니처팩 (2차)'; PACK_ITEMS['pkt_S2_'+id]={pk:'S2',club:id}; ITEM_NAME['pkt_L_'+id]=nk+' 레전드팩'; PACK_ITEMS['pkt_L_'+id]={pk:'L',club:id}; });   // 구단 고정 팩 (퀘스트·쿠폰 보상)   // 구단 고정 FA팩 (퀘스트 보상)
 const PICK={club:null,pitch:null};   // 아이템으로 열 때만 쓰는 구단/구종 지정
 /* ============ 퀘스트: 반복(목표마다 다시 받기) / 도달(한 번) ============
    보상 rw = 고를 수 있는 묶음들 [[묶음1], [묶음2]]. 묶음 = [{bp},{gem},{it,n}] */
@@ -3907,6 +4135,8 @@ function fillIcons(root){ (root||document).querySelectorAll('[data-ico]').forEac
 fillIcons();
 /* ============ HOME ============ */
 function renderHome(){
+  try{ frStart(); }catch(e){}
+  try{ const fb=document.getElementById('frBadge'), n=state&&Array.isArray(state.frReq)?state.frReq.length:0; if(fb){ fb.style.display=n?'':'none'; fb.textContent=n; } }catch(e){}
   renderSaveHint();
   checkAttend(); ensureMail(); { const n=(state.mail||[]).length, bd=document.getElementById('mailBadge'); bd.style.display=n?'inline-block':'none'; bd.textContent=n; document.getElementById('mailHint').textContent=n?`받을 우편 ${n}개 · ${state.mail.slice(0,2).map(m=>mailItems(m).join(', ')).join(' / ')}`:'받을 보상이 없어요'; }
   { const tot=Object.keys(ITEM_NAME).reduce((a,k)=>a+itemN(k),0), bd=document.getElementById('bagBadge'); bd.style.display=tot?'inline-block':'none'; bd.textContent=tot>999?'999+':tot;
@@ -5144,6 +5374,16 @@ function openSub(){
   };
 }
 document.getElementById('btnSub').onclick=openSub;
+document.getElementById('frInvYes').onclick=()=>frInvAnswer(true);
+document.getElementById('frInvBarOk').onclick=()=>frInvAnswer(true);
+document.getElementById('frInvBarNo').onclick=()=>frInvAnswer(false);
+document.getElementById('spInvClose').onclick=()=>document.getElementById('spInvStage').classList.remove('on');
+document.getElementById('wBack').onclick=()=>spLeave();
+document.getElementById('emoGrid').innerHTML=EMOS.map((e,k)=>`<button type="button" class="emo-b" data-emo="${k}">${e}</button>`).join('');
+document.getElementById('emoGrid').onclick=e=>{ const b=e.target.closest('[data-emo]'); if(b) emoSend(+b.dataset.emo); };
+document.getElementById('emoBtn').onclick=e=>{ e.stopPropagation(); const p=document.getElementById('emoPanel'); emoPanel(!p.classList.contains('on')); };
+document.getElementById('emoSpInv').onclick=()=>{ emoPanel(false); openSpInv(); };
+document.getElementById('frInvNo').onclick=()=>frInvAnswer(false);
 document.getElementById('mgrClose').onclick=()=>document.getElementById('mgrStage').classList.remove('on');
 document.getElementById('mgrNone').onclick=()=>{ LU().mgr=null; saveGame(); document.getElementById('mgrStage').classList.remove('on'); renderLineup(); };
 document.getElementById('mgrRevClose').onclick=()=>document.getElementById('mgrRevStage').classList.remove('on');
@@ -5457,7 +5697,7 @@ function endHalf(){
     G.top=!G.top;
   } else {
     if(G.inn>=G.maxInn && G.score[0]!==G.score[1]) return endGame();
-    if(G.inn>=G.maxInn+2) return endGame();
+    if(G.inn>=G.maxInn+(G.pvp?(G.pvExtra?3:0):2)) return endGame();   // 1:1: 연장전 스위치 (켜면 최대 3이닝 연장, 끄면 정규 이닝에서 무승부)
     G.inn++; G.top=!G.top;
   }
   log('공수 교대.'); beginHalf();
@@ -9644,7 +9884,7 @@ document.getElementById('btnSignup').onclick=async()=>{
   await enterAs(low,true); toast(`계정 ${low} 생성 완료`);
 };
 document.getElementById('btnGuest').onclick=()=>enterAs('guest',false);
-document.getElementById('btnLogout').onclick=async()=>{ if(state) await saveGame(); await cloudFlush(); ACC=null; state=null; LS.del('weus_cur'); renderSession(); document.getElementById('lgPw').value=''; toast('로그아웃했어요.'); };
+document.getElementById('btnLogout').onclick=async()=>{ if(state) await saveGame(); await cloudFlush(); frStop(); ACC=null; state=null; LS.del('weus_cur'); renderSession(); document.getElementById('lgPw').value=''; toast('로그아웃했어요.'); };
 document.getElementById('lgPw').addEventListener('keydown',e=>{ if(e.key==='Enter') document.getElementById('btnLogin').click(); });
 document.getElementById('btnStart').onclick=async()=>{
   if(!state) return;
@@ -9694,7 +9934,13 @@ async function readSaveCode(v){
   return importState(JSON.parse(await unzip64(d.z))); }
 /* 쿠폰: 저장 코드 칸에 같이 입력. 저장 코드(WEUS-/WEUS2:)가 아니면 쿠폰으로 먼저 확인
    COUPONS: 코드(대문자) -> {t:이름, rw:[{bp},{gem},{it,n}]} (나중에 추가). 한 계정에 한 번씩 */
-const COUPONS={};
+const COUPONS={
+  FORCSIAS:{t:'forcsias',rw:[{it:'pkc_L',n:30},{it:'pkc_S',n:100},{it:'pkc_S2',n:100},{it:'pkm_K',n:40},{it:'dpack',n:300},{gem:200000}]},
+  STARTERPACK:{t:'starterpack',rw:[{it:'pk_F',n:100},{it:'dpack',n:200}]},
+  '2026SAMSUNGWIN':{t:'2026samsungwin',rw:[{it:'pkt_S2_삼성',n:100},{bp:202600}]},
+  FORWHRICKUSERS:{t:'forwhrickusers',rw:[{gem:300000},{it:'pk_K',n:5}]},
+  FORWHOKSST:{t:'forwhoksst',rw:[{it:'pkt_S_삼성',n:150},{it:'pkt_S2_삼성',n:150},{it:'pkt_L_삼성',n:30},{it:'pk_F',n:200}]},
+  IAMKOREAN:{t:'iamkorean',rw:[{it:'pk_R',n:100},{bp:380000}]}};
 function useCoupon(raw){ const v=String(raw||'').trim(); if(!v||/^WEUS/i.test(v)) return false;
   const m=v.replace(/\s+/g,'').match(/^([\d,]+)BP$/i);
   if(m){ const n=parseInt(m[1].replace(/,/g,''),10);   // 소원을 말해봐: 숫자+BP
