@@ -102,6 +102,7 @@
   .fr-who{display:flex;flex-direction:column;min-width:0;} .fr-who small{color:var(--chalk-dim);font-size:11.5px;}
   .fr-btns{display:flex;gap:6px;flex:0 0 auto;}
   .fr-dot{display:inline-block;width:8px;height:8px;border-radius:50%;background:#64748b;margin-right:5px;vertical-align:1px;} .fr-dot.on{background:#22c55e;} .fr-dot.wait{background:#eab308;}
+  body.spec #pitchControls,body.spec #batControls,body.spec #fvHud .fh-aim,body.spec #fvHud .fh-types,body.spec #btnPitch,body.spec #btnSwing,body.spec #pitchTypes,body.spec #zonePick,body.spec #chasePick,body.spec #btnSteal,body.spec #btnPickoff,body.spec #btnAuto,body.spec #btnFull,body.spec #btnSub,body.spec .pitch-help,body.spec #pcClock{display:none!important;}
   .sw-row{display:flex;width:100%;justify-content:space-between;align-items:center;gap:10px;margin-top:8px;padding:9px 12px;border-radius:12px;border:1px solid var(--line);background:rgba(255,255,255,.04);color:inherit;font:inherit;text-align:left;cursor:pointer;}
   .sw-row span{display:flex;flex-direction:column;font-weight:800;font-size:14px;} .sw-row small{font-weight:600;font-size:11.5px;color:var(--chalk-dim);margin-top:2px;}
   .sw{position:relative;flex:0 0 auto;width:46px;height:26px;border-radius:99px;background:#334155;transition:background .2s;} .sw b{position:absolute;top:3px;left:3px;width:20px;height:20px;border-radius:50%;background:#fff;transition:left .2s;} .sw.on{background:#22c55e;} .sw.on b{left:23px;}
@@ -3316,6 +3317,7 @@ function go(name){
   try{ applyLand(); }catch(e){}
   screens[name].scrollTop=0;
   if(name==='home')renderHome();
+  if(name!=='match') document.body.classList.remove('spec');
   if(name==='friend'){ frRender(); frStart().then(()=>frRefresh()); }
   if(name==='scout')renderScout();
   if(name==='practice') renderPractice();
@@ -3393,7 +3395,7 @@ function pvUnpack(T){ const num=v=>Math.max(0,Math.min(STAT_MAX+4,+v||0)), str=v
       pitches:(x.pt||[]).slice(0,9).map(q=>{ const o=(base.pitches||[]).find(y=>y.short===q[0])||{}; return Object.assign({},o,{short:str(q[0]),name:str(q[1])||o.name||str(q[0]),g:num(q[2])}); })}); });
   if(!p.length) p.push(Object.assign({},TRAINEE_P,{role:'선발'}));
   return {tn:str(T.tn)||'상대',id:str(T.id)||'OPP',b,p}; }
-function pvSend(o){ if(PV.r) PV.r.emit('pvp',o).catch(()=>{}); }
+function pvSend(o){ if(!PV.r) return; if(PV.watch&&!['watch','unwatch','emo'].includes(o&&o.t)) return; PV.r.emit('pvp',o).catch(()=>{}); }   // 관전자는 관전·이모티콘 메시지만
 function pvStatus(t){ PV.status=t; const e=document.getElementById('pvStatus'); if(e) e.textContent=t; }
 /* 서버 없는 1:1 연결: PeerJS(WebRTC). 방장은 방 코드로 된 주소를 열고, 참가자는 그 주소로 직접 연결. 연결을 맺어 주는 중계에는 PeerJS 공개 서버를 씀 */
 const P2P_SRC='https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js';
@@ -3546,12 +3548,40 @@ async function pvWatch(code0){ const v=String(code0||(document.getElementById('p
   PV.watch=true; pvStatus('관전 연결 중...'); go('watch'); renderWatch();
   const hi=()=>pvSend({t:'watch',name:ACC&&ACC!=='guest'?ACC:'게스트',tok:PV.tok}); hi();
   PV.timer=setInterval(()=>{ if(!PV.wv||PV.wv.wait) hi(); },1500); }
+function spGame(){ if(!G||!G.pvp||!PV.started||!PV._guestRaw) return null; return {host:PV.myT,guest:PV._guestRaw,maxInn:PV.maxInn,extra:!!PV.extra,seq:G.pvp.seq,st:pvSnap(),over:!!G.over}; }
 function spOnMsg(d){ if(d.t==='wfull'&&d.tok===PV.tok){ toast(`관전자가 이미 ${SPEC_MAX}명이에요.`); pvReset(); go('pvp'); return; }
-  if(d.t==='wok'&&d.tok===PV.tok){ PV.wv=d.v; PV.wok=true; renderWatch(); return; }
-  if(d.t==='sp'&&d.v){ PV.wv=d.v; renderWatch(); return; }
+  if(d.t==='wok'&&d.tok===PV.tok){ PV.wv=d.v; PV.wok=true; renderWatch(); if(d.g&&!d.g.over) spStart(d.g); return; }
+  if(d.t==='start'&&d.host&&d.guest&&PV.wok&&!(G&&G.pvp&&G.pvp.watch&&!G.over)){ spStart({host:d.host,guest:d.guest,maxInn:d.maxInn,extra:d.extra,seq:1}); return; }
+  if(d.t==='sp'&&d.v){ PV.wv=d.v; if(!(G&&G.pvp&&G.pvp.watch)) renderWatch(); return; }
+  if(G&&G.pvp&&G.pvp.watch&&G.id===G.pvp.gid&&!G.over){ const pv=G.pvp;
+    if(d.t==='pitch'||d.t==='pick'){ if(d.seq<pv.seq||(pv.pend&&pv.pend.seq===d.seq)||(pv.q&&pv.q.seq===d.seq)) return; pv.q=d; if(G.phase==='wait') spPlay(); return; }
+    if(d.t==='res'&&d.ev){ if(!pv.res[d.seq]) pv.res[d.seq]=d.ev; if(pv.pend&&pv.pend.seq===d.seq) pvMaybeApply(); return; }
+    if(d.t==='st') return pvGotState(d); }
   if(d.t==='quit'&&PV.wv){ PV.wv.over=true; PV.wv.quit=true; renderWatch(); } }
 function spLost(){ if(!PV.watch) return; if(!PV.wok){ toast(`관전할 수 없어요. 관전자가 이미 ${SPEC_MAX}명이거나 방이 닫혔어요.`); pvReset(); go('pvp'); return; } if(PV.wv) PV.wv.lost=true; renderWatch(); }
-function spLeave(){ if(PV.r) pvSend({t:'unwatch'}); pvReset(); go('home'); }
+function spLeave(){ if(PV.r) pvSend({t:'unwatch'}); if(G&&G.pvp&&G.pvp.watch){ G.over=true; try{ stopMeter(); }catch(e){} } pvReset(); go('home'); }
+/* 관전자 3D: 참가자(홈) 화면을 그대로 따라가는 경기를 만들고, 오는 공·결과만 재생 (입력 없음) */
+function spStart(g){ try{ FH.menu=false; }catch(e){}
+  const op=pvUnpack(g.host), gu=pvUnpack(g.guest); PV.oppT=op; PV.maxInn=PV_INN.includes(g.maxInn)?g.maxInn:3; PV.extra=!!g.extra; PV.started=true;
+  GID++;
+  G={id:GID,maxInn:PV.maxInn,inn:1,top:true,over:false,auto:false,score:[0,0],line:[[],[]],hits:[0,0],outs:0,balls:0,strikes:0,bases:[false,false,false],
+     lineups:[op.b,gu.b],pitchers:[gu.p[0],op.p[0]],pens:[gu.p.slice(1),op.p.slice(1)],bench:[],bIdx:[0,0],pc:[0,0],oppTeam:{id:op.id,full:op.tn},
+     st:{myK:0,myRA:0,myHR:0,myBB:0},sel:{type:null,zone:null,chase:null},phase:'idle',full:false,stage:state.stage,cold:false,pvpWatch:true,
+     pvp:{host:false,watch:true,meId:gu.id,meTn:gu.tn,gid:GID,seq:1,res:{},pend:null,q:null,flown:false,myStaff:gu.p,oppStaff:op.p,pi:0}};
+  G.pvp.gid=G.id; G.pvExtra=PV.extra; PV.final=null; document.body.classList.add('spec');
+  logClear(); go('match');
+  log(`<b>관전</b> · 원정 <b>${esc(op.tn)}</b> vs 홈 <b>${esc(gu.tn)}</b> · ${G.maxInn}이닝${PV.extra?' · 연장전 있음':''}`);
+  if(g.st&&g.seq>1){ G.pvp.seq=g.seq; pvAdopt(g.st); } else beginHalf(); }
+function spPlay(){ const pv=G.pvp, d=pv.q; if(!d||G.over) return; if(d.seq!==pv.seq){ if(d.seq<pv.seq) pv.q=null; return; } pv.q=null; pv.pend=d; pv.flown=false;
+  if(d.t==='pick'||d.pclock){ pv.flown=true; if(d.pclock&&!pv.res[d.seq]) pv.res[d.seq]={e:'ball',pclock:1}; if(d.t==='pick') log(`${nm(curPitcher())} ${d.k===0?'1루':'2루'} 견제...`); pvMaybeApply(); return; }
+  const side=G.top?0:1, st=side?pv.oppStaff:pv.myStaff, P0=st[Math.max(0,Math.min(st.length-1,d.pi|0))];
+  if(G.pitchers[side]!==P0){ G.pitchers[side]=P0; log(`투수: <b>${esc(nm(P0))}</b>`); try{ renderChips(); }catch(e){} }
+  G.pc[side]=Math.max(0,d.pc|0);
+  const P=tiredP(P0,G.pc[side]), base=P.pitches.find(x=>x.short===d.pt)||P.pitches[0]||{short:'포심',name:'포심',g:5};
+  const pt=Object.assign({},base,{g:Math.max(1,Math.min(STAT_MAX+4,+d.g||base.g))}), velo=Math.max(90,Math.min(175,+d.velo||140));
+  G.phase='windup';
+  animatePitch({inZone:!!d.inZone,zone:(d.zone|0)%9,chase:(d.chase|0)%4,pt,g:pt.g-(d.middle?2:0),velo,fast:false,P,mvAdd:+d.mv||0,mvYAdd:+d.mvY||0},()=>{
+    showPitchInfo(pitchLabel(P,pt,velo)); pv.flown=true; pvMaybeApply(); }); }
 function renderWatch(){ const b=document.getElementById('watchBody'); if(!b) return; const v=PV.wv;
   if(!v){ b.innerHTML=`<div class="pv-card" style="text-align:center;"><p class="hint">${esc(PV.status||'방장에게 연결하는 중...')}</p><button class="btn ghost" id="wLeave">나가기</button></div>`; document.getElementById('wLeave').onclick=spLeave; return; }
   const sp=`관전자 ${v.specs.length}/${SPEC_MAX}${v.specs.length?' · '+v.specs.map(esc).join(', '):''}`;
@@ -3590,12 +3620,13 @@ setInterval(emoSync,500);
 function pvReset(){ if(PV.timer) clearInterval(PV.timer); if(PV.spT) clearInterval(PV.spT); PV.unsub.forEach(u=>{ try{u();}catch(e){} }); PV.unsub=[]; if(PV.r){ PV.r.leave().catch(()=>{}); }
   Object.assign(PV,{r:null,code:null,host:false,peerOther:null,timer:null,status:'',myT:null,oppT:null,started:false,acked:false,_guestRaw:null,specs:{},wok:false,watch:false,wv:null,tok:null,spT:null,seen:{}});
   if(G&&G.pvp&&G.pvp.rt) clearInterval(G.pvp.rt); }
-function pvLeave(){ if(PV.r) pvSend({t:'quit'}); if(G&&G.pvp){ G.over=true; stopMeter(); } pvReset(); PV.final=null; go('home'); }
+function pvLeave(){ if(PV.watch){ document.body.classList.remove('spec'); return spLeave(); } if(PV.r) pvSend({t:'quit'}); if(G&&G.pvp){ G.over=true; stopMeter(); } pvReset(); PV.final=null; go('home'); }
 function pvOnMsg(m){ const d=m.data||{}; if(!d||typeof d!=='object'||m.sameTab) return;
   if(d.t==='emo'){ if(d.n&&PV.seen[d.n]) return; if(d.n) PV.seen[d.n]=1; emoShow(d); if(PV.host) pvSend(d); return; }   // 방장이 모두에게 다시 전함
   if(PV.watch){ spOnMsg(d); return; }
+  if(d.rl) return;
   if(d.t==='watch'){ if(!PV.host) return; const nmx=String(d.name||'관전자').slice(0,16);
-    if(PV.specs[m.peer]||Object.keys(PV.specs).length<SPEC_MAX){ const nw=!PV.specs[m.peer]; PV.specs[m.peer]=nmx; pvSend({t:'wok',tok:d.tok,v:spView()}); if(nw){ toast(`${nmx}님이 관전을 시작했어요. (관전자 ${Object.keys(PV.specs).length}/${SPEC_MAX})`); try{ renderPvp(); }catch(e){} } }
+    if(PV.specs[m.peer]||Object.keys(PV.specs).length<SPEC_MAX){ const nw=!PV.specs[m.peer]; PV.specs[m.peer]=nmx; pvSend({t:'wok',tok:d.tok,v:spView(),g:spGame()}); if(nw){ toast(`${nmx}님이 관전을 시작했어요. (관전자 ${Object.keys(PV.specs).length}/${SPEC_MAX})`); try{ renderPvp(); }catch(e){} } }
     else pvSend({t:'wfull',tok:d.tok}); return; }
   if(d.t==='unwatch'){ if(PV.specs[m.peer]){ delete PV.specs[m.peer]; try{ renderPvp(); }catch(e){} } return; }
   if(PV.specs[m.peer]) return;   // 관전자의 다른 메시지는 무시
@@ -3608,6 +3639,7 @@ function pvOnMsg(m){ const d=m.data||{}; if(!d||typeof d!=='object'||m.sameTab) 
     if(d.t==='start'&&d.host&&!PV.started){ PV.peerOther=m.peer; PV.oppT=pvUnpack(d.host); PV.maxInn=PV_INN.includes(d.maxInn)?d.maxInn:3; PV.extra=!!d.extra; PV.started=true; pvSend({t:'go'}); pvStartGame(); return; }
     if(d.t==='start'){ pvSend({t:'go'}); return; }
   }
+  if(PV.host&&['pitch','res','pick'].includes(d.t)&&Object.keys(PV.specs).length) pvSend(Object.assign({},d,{rl:1}));   // 관전자 3D 화면용
   if(!G||!G.pvp||G.id!==G.pvp.gid) return;
   if(d.t==='pitch') return pvGotPitch(d);
   if(d.t==='res') return pvGotRes(d);
@@ -3711,9 +3743,10 @@ function pvGotState(d){ const pv=G.pvp; if(PV.host||!d.st||!d.idle) return; if(!
   pv.diffN=(pv.diffN||0)+1; if(pv.diffN<2) return;   // 두 번 연속(약 3초) 다를 때만: 잠깐 어긋나는 순간은 넘어감
   pv.diffN=0; if(typeof d.seq==='number') pv.seq=d.seq; pvAdopt(d.st); }
 /* 내 투수가 많이 던지면 타석 시작 때 다음 투수로 (상대 화면에는 다음 공과 함께 전해짐) */
-function pvBullpen(){ const pv=G.pvp, P=G.pitchers[0]; if(!G.top) return;
+function pvBullpen(){ const pv=G.pvp, P=G.pitchers[0]; if(!G.top||pv.watch) return;
   if(G.pc[0]>pitchLimit(P)+15&&pv.pi<pv.myStaff.length-1){ pv.pi++; const np=pv.myStaff[pv.pi]; G.pitchers[0]=np; G.pc[0]=0; log(`투수 교체: <b>${esc(nm(np))}</b>`); renderChips(); buildPitchUI(); } }
 function pvEndGame(){ G.over=true; stopMeter(); if(G.pvp.rt) clearInterval(G.pvp.rt);
+  if(G.pvp.watch){ const a=G.score[0], h=G.score[1]; log(`<b>경기 종료</b> ${a}:${h}`); flashCallout(a===h?'DRAW':'GAME SET','#fff'); setTimeout(()=>{ document.body.classList.remove('spec'); if(PV.watch){ go('watch'); renderWatch(); } },2500); return; }
   const my=G.score[1], op=G.score[0]; PV.final={my,op,inn:G.inn}; qGameDone(my>op,true); try{ saveGame(); }catch(e){}
   log(`<b>경기 종료</b> ${my}:${op}`); flashCallout(my>op?'WIN':my<op?'LOSE':'DRAW',my>op?'var(--gold-hi)':'#fff');
   setTimeout(()=>{ go('pvp'); },1800); }
@@ -5558,6 +5591,7 @@ function continuePitch(){
   renderBoard(); tcFxCheck();
   if(runGame()) return;
   syncRunBtns();
+  if(G.pvp&&G.pvp.watch){ G.phase='wait'; if(G.pvp.q) spPlay(); return; }   // 관전
   if(G.auto){ later(autoStep,G.full?FULL.pitch:150); return; }
   if(G.top) armPitch(); else scheduleAIPitch();
 }
@@ -5708,7 +5742,7 @@ let QUIET=false;   // 100회 자동 플레이 중에는 화면 갱신을 건너�
 function renderBoard(){ if(QUIET||(G&&G.skipQ)) return;   // 스킵 계산 중에는 화면 갱신 생략 (끝나고 한 번만)
   if(!G)return;
   const cols=Math.max(G.maxInn,G.inn);
-  const tm=TEAMS.find(t=>t.id===state.team);
+  const tm=TEAMS.find(t=>t.id===((G&&G.pvp&&G.pvp.meId)||state.team));
   let h='<table class="ls"><tr><th></th>'; for(let k=1;k<=cols;k++)h+=`<th>${k}</th>`; h+='<th>R</th><th>H</th></tr>';
   (G.pvp&&G.pvp.host?[[1,tm?tAb(tm.id):'우리','me'],[0,tAb(G.oppTeam.id),'']]:[[0,tAb(G.oppTeam.id),''],[1,tm?tAb(tm.id):'우리','me']]).forEach(([t,name,cls])=>{
     h+=`<tr class="${cls}"><td class="tm">${name}</td>`;
@@ -5775,7 +5809,7 @@ function buildPitchUI(){
 /* ============ 피치 클락: 내가 던질 차례가 되면 15초. 넘기면 자동으로 볼, 5번 넘기면 강제 퇴장(경기 종료)
    메뉴 일시정지 중에는 멈춤. 연습 모드·홈런 레이스·자동 진행에서는 없음 ============ */
 const PCK={on:false,end:0,last:0,to:null,LIM:15000,MAXV:5};
-function pcStart(){ if(!G||G.over||!G.top||G.auto||G.full||G.prac||G.hr) return pcStop(); if(PCK.on&&PCK.gid===G.id) return;
+function pcStart(){ if(!G||G.over||!G.top||G.auto||G.full||G.prac||G.hr||G.pvpWatch) return pcStop(); if(PCK.on&&PCK.gid===G.id) return;
   PCK.on=true; PCK.gid=G.id; PCK.end=performance.now()+PCK.LIM; PCK.last=performance.now(); pcTick(); }
 function pcStop(){ PCK.on=false; clearTimeout(PCK.to); const e=document.getElementById('pcClock'); if(e) e.style.display='none'; }
 function pcTick(){ clearTimeout(PCK.to); if(!PCK.on) return; if(!G||G.over||G.id!==PCK.gid||!G.top||G.auto){ pcStop(); return; }
@@ -8855,9 +8889,9 @@ function fvHudSync(){ try{ fhPauseSync(); const fv=document.getElementById('fiel
     if(!base3d){ if(h) h.style.display='none'; if(meter&&home&&meter.parentNode!==home) home.insertBefore(meter,home.firstChild); return; }
     if(!h){ h=document.createElement('div'); h.id='fvHud'; fv.appendChild(h); ['pointerdown','click'].forEach(ev=>h.addEventListener(ev,e=>{ if(e.target!==h) e.stopPropagation(); }));
       const ob=new MutationObserver(()=>fvHudState()); ['btnPitch','btnSwing','btnSteal','btnPickoff','btnQuit','btnAuto'].forEach(id=>{ const b=document.getElementById(id); if(b) ob.observe(b,{attributes:true,childList:true,characterData:true,subtree:true}); }); }
-    h.style.display=''; const pit=manual&&!!G.top&&!G.auto, bat=manual&&!G.top&&!G.auto; let html='';
+    h.style.display=''; const pit=manual&&!!G.top&&!G.auto&&!G.pvpWatch, bat=manual&&!G.top&&!G.auto&&!G.pvpWatch; let html='';
     // 점수판 (화면 안): 팀 점수, 이닝, 볼카운트, 주자
-    if(imm){ const tm=TEAMS.find(t=>t.id===state.team), my=tm?tAb(tm.id):'우리', host=G.pvp&&G.pvp.host, rows=host?[[1,my,1],[0,tAb(G.oppTeam.id),0]]:[[0,tAb(G.oppTeam.id),0],[1,my,1]];
+    if(imm){ const tm=TEAMS.find(t=>t.id===((G.pvp&&G.pvp.meId)||state.team)), my=tm?tAb(tm.id):'우리', host=G.pvp&&G.pvp.host, rows=host?[[1,my,1],[0,tAb(G.oppTeam.id),0]]:[[0,tAb(G.oppTeam.id),0],[1,my,1]];
       const dots=(n,max,c)=>Array.from({length:max},(_,i)=>`<i class="${i<n?c:''}"></i>`).join('');
       html+=`<div class="fh-score"><div class="tm">${rows.map(([t,n,me])=>`<div class="${me?'me':''}${bt()===t?' at':''}"><span>${n}</span><b>${G.score[t]}</b></div>`).join('')}</div>
         <div class="st"><em>${document.getElementById('innLabel').textContent}</em><div class="fh-dia"><i class="b2${G.bases[1]?' on':''}"></i><i class="b3${G.bases[2]?' on':''}"></i><i class="b1${G.bases[0]?' on':''}"></i></div>
