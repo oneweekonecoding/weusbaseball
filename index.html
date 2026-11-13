@@ -3279,6 +3279,18 @@ async function loadGame(id){
   return best;
 }
 function fmtTime(t){ if(!t) return '-'; const d=new Date(t); return `${d.getMonth()+1}/${d.getDate()} ${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`; }
+/* 자동 저장: 팀 교체·배치(라인업, 덱, 구단)가 바뀌거나 카드를 200장 더 얻으면 바로 저장 (클라우드도 즉시) */
+const AUTOSV={lu:null,cards:null,busy:false};
+function asCards(){ let n=0; const o=state&&state.owned; if(o) for(const k in o) n+=o[k]>0?o[k]:0; return n; }
+function asLu(){ try{ return JSON.stringify([state.team,state.deckIdx,state.decks,state.lineup]); }catch(e){ return ''; } }
+async function autoSaveTick(){ if(!state||!ACC||AUTOSV.busy) return; if(AUTOSV.acc!==ACC){ AUTOSV.acc=ACC; AUTOSV.lu=null; } if(G&&!G.over&&(G.skip||G.full)) return;
+  const lu=asLu(), c=asCards(); if(AUTOSV.lu==null){ AUTOSV.lu=lu; AUTOSV.cards=c; return; }
+  let why='';
+  if(lu!==AUTOSV.lu) why='팀 설정'; else if(c-AUTOSV.cards>=200) why=`카드 ${c-AUTOSV.cards}장 획득`; else if(c<AUTOSV.cards) AUTOSV.cards=c;
+  if(!why) return; AUTOSV.busy=true; AUTOSV.lu=lu; AUTOSV.cards=c;
+  try{ await saveGame(); await cloudFlush(); }catch(e){} finally{ AUTOSV.busy=false; }
+  if(why!=='팀 설정') toast(`자동 저장했어요 (${why})`); }
+setInterval(autoSaveTick,2500);
 function renderSaveHint(){
   const el=document.getElementById('saveHint'); if(!el||!state) return;
   el.textContent=`${ACC==='guest'?'게스트':ACC} · 마지막 저장 ${fmtTime(state.savedAt)}`+(ACC!=='guest'?(CLOUD.ok?' · 클라우드 '+(CLOUD.err?(CLOUD.err==='too_big'?'오류(저장 용량 초과)':'오류'):'연결'):' · 이 기기만'):'');
@@ -3463,7 +3475,7 @@ function frSend(id,msg,ms){ return new Promise(res=>{ if(!FR.peer||FR.st!=='onli
   c.on('open',()=>{ try{ c.send(Object.assign({from:ACC},msg)); }catch(e){ fin(null); } });
   c.on('data',d=>fin(d||{})); c.on('error',()=>fin(null)); }); }
 function frMyStatus(){ const act=n=>screens[n]&&screens[n].classList.contains('active');
-  if(PV.watch) return '관전 중'; if(G&&!G.over&&G.pvp) return '1:1 대전 중'; if(PV.r&&PV.host) return '1:1 방 대기 중';
+  if(PV.watch) return '관전 중'; if(MM.on) return '랜덤 매칭 중'; if(G&&!G.over&&G.pvp) return '1:1 대전 중'; if(PV.r&&PV.host) return '1:1 방 대기 중';
   if((G&&!G.over&&G.hr)||act('derby')) return '홈런 레이스 중'; if((G&&!G.over&&G.prac)||act('practice')) return '연습 중';
   if((G&&!G.over)||act('match')||act('matchsetup')) return '리그 모드 중'; return '접속 중'; }
 function frBusy(){ const act=n=>screens[n]&&screens[n].classList.contains('active'); return !!((G&&!G.over)||act('derby')||act('practice')||act('match')||PV.r); }
@@ -3617,10 +3629,50 @@ function emoSync(){ const btn=document.getElementById('emoBtn'); if(!btn) return
   const on=!!(PV.r&&(inMatch||inWatch)); btn.style.display=on?'':'none'; if(!on) emoPanel(false);
   const sb=document.getElementById('emoSpInv'); if(sb) sb.style.display=PV.host?'':'none'; }
 setInterval(emoSync,500);
+/* ============ 랜덤 매칭 (3이닝 고정) ============
+   서버 없이: 대기자는 방을 만들고 공개 대기 자리(weuspb-mm-0~9) 중 빈 자리를 차지. 찾는 사람은 모든 자리에 물어보고 방 코드를 받아 참가.
+   둘 다 대기하게 되면 번호가 큰 자리의 사람이 작은 자리를 찾아가서 만남 */
+const MM_SLOTS=10, MM={on:false,slot:-1,sp:null,scan:null,timer:null,joinT:null,given:0,st:''};
+const mmId=k=>'weuspb-mm-'+k;
+function mmSt(t){ MM.st=t; pvStatus(t); try{ if(!PV.r) renderPvp(); }catch(e){} }
+function mmStop(keepRoom){ MM.on=false; clearInterval(MM.timer); clearTimeout(MM.joinT); MM.timer=null; MM.joinT=null;
+  if(MM.sp){ try{ MM.sp.destroy(); }catch(e){} } if(MM.scan){ try{ MM.scan.destroy(); }catch(e){} } MM.sp=null; MM.scan=null; MM.slot=-1;
+  if(!keepRoom&&PV.r&&PV.host&&!PV.oppT&&PV.mm){ pvReset(); } }
+function mmScanPeer(){ return new Promise(res=>{ if(MM.scan&&MM.scan.open) return res(MM.scan); try{ const p=new Peer(); MM.scan=p; const to=setTimeout(()=>res(null),8000);
+  p.on('open',()=>{ clearTimeout(to); res(p); }); p.on('error',e=>{ if(e&&e.type==='peer-unavailable') return; }); }catch(e){ res(null); } }); }
+/* 대기 자리 0..upto-1 에 물어 방 코드를 받음 */
+function mmFind(upto){ return new Promise(async res=>{ const p=await mmScanPeer(); if(!p||!MM.on) return res(null); let done=false; const cs=[];
+  const fin=v=>{ if(done) return; done=true; clearTimeout(to); cs.forEach(c=>{ try{ c.close(); }catch(e){} }); res(v); };
+  const to=setTimeout(()=>fin(null),3500);
+  for(let k=0;k<upto;k++){ if(k===MM.slot) continue; try{ const c=p.connect(mmId(k),{reliable:true}); cs.push(c);
+    c.on('open',()=>{ try{ c.send({t:'mmq',from:ACC||'guest'}); }catch(e){} }); c.on('data',d=>{ if(d&&d.t==='mmc'&&d.code) fin(String(d.code).slice(0,8)); }); }catch(e){} } }); }
+async function mmStart(){ if(PV.r){ toast('이미 방에 들어가 있어요.'); return; } if(G&&G.pvp&&!G.over){ toast('1:1 대전 중이에요.'); return; }
+  mmStop(); MM.on=true; PV.final=null; mmSt('랜덤 상대를 찾는 중...');
+  try{ await p2pLoad(); }catch(e){ MM.on=false; mmSt('연결 도구를 불러오지 못했어요. 인터넷 연결을 확인해 주세요.'); return; }
+  const code=await mmFind(MM_SLOTS); if(!MM.on) return;
+  if(code) return mmJoin(code);
+  // 아무도 없음: 내가 방을 만들고 빈 대기 자리를 차지
+  PV.maxInn=3; PV.extra=false; await pvCreate(pvRand(5)); if(!MM.on) return; if(!PV.r){ MM.on=false; mmSt('방을 만들지 못했어요. 잠시 후 다시 해 주세요.'); return; }
+  PV.mm=true; pvStatus('랜덤 상대를 기다리는 중... (3이닝)'); renderPvp();
+  for(let k=0;k<MM_SLOTS&&MM.on;k++){ const ok=await new Promise(res=>{ let p; try{ p=new Peer(mmId(k)); }catch(e){ return res(false); }
+      const to=setTimeout(()=>{ try{ p.destroy(); }catch(e){} res(false); },6000);
+      p.on('open',()=>{ clearTimeout(to); MM.sp=p; MM.slot=k; res(true); });
+      p.on('error',e=>{ if(e&&e.type==='peer-unavailable') return; clearTimeout(to); try{ p.destroy(); }catch(x){} res(false); });
+      p.on('connection',c=>{ c.on('data',d=>{ if(!d||d.t!=='mmq') return; const busy=!MM.on||PV.oppT||!PV.r||(Date.now()-MM.given<9000);
+        try{ c.send(busy?{t:'mmbusy'}:{t:'mmc',code:PV.code}); }catch(e){} if(!busy) MM.given=Date.now(); }); }); });
+    if(ok) break; }
+  if(!MM.on) return;
+  if(MM.slot<0){ mmStop(); pvReset(); mmSt('대기 자리가 모두 차 있어요. 잠시 후 다시 해 주세요.'); return; }
+  // 대기 중: 상대가 들어오면 자리 반납, 번호가 작은 자리에 다른 대기자가 있으면 그쪽으로 감
+  MM.timer=setInterval(async()=>{ if(!MM.on) return; if(PV.oppT||(G&&G.pvp)){ mmStop(true); return; }
+    if(MM.slot>0&&!MM.busyScan){ MM.busyScan=true; const c2=await mmFind(MM.slot); MM.busyScan=false; if(c2&&MM.on&&!PV.oppT){ pvReset(); if(MM.sp){ try{ MM.sp.destroy(); }catch(e){} MM.sp=null; } MM.slot=-1; clearInterval(MM.timer); mmJoin(c2); } } },4000); }
+async function mmJoin(code){ mmSt('상대를 찾았어요! 연결하는 중...'); go('pvp'); await pvJoin(code);
+  clearTimeout(MM.joinT); MM.joinT=setTimeout(()=>{ if(!MM.on) return; if(PV.started||(G&&G.pvp)){ mmStop(true); return; } pvReset(); mmStart(); },12000);   // 실패하면 다시 찾기
+  const w=setInterval(()=>{ if(!MM.on){ clearInterval(w); return; } if(PV.started||(G&&G.pvp)){ clearInterval(w); mmStop(true); } },500); }
 function pvReset(){ if(PV.timer) clearInterval(PV.timer); if(PV.spT) clearInterval(PV.spT); PV.unsub.forEach(u=>{ try{u();}catch(e){} }); PV.unsub=[]; if(PV.r){ PV.r.leave().catch(()=>{}); }
-  Object.assign(PV,{r:null,code:null,host:false,peerOther:null,timer:null,status:'',myT:null,oppT:null,started:false,acked:false,_guestRaw:null,specs:{},wok:false,watch:false,wv:null,tok:null,spT:null,seen:{}});
+  Object.assign(PV,{r:null,code:null,host:false,peerOther:null,timer:null,status:'',myT:null,oppT:null,started:false,acked:false,_guestRaw:null,mm:false,specs:{},wok:false,watch:false,wv:null,tok:null,spT:null,seen:{}});
   if(G&&G.pvp&&G.pvp.rt) clearInterval(G.pvp.rt); }
-function pvLeave(){ if(PV.watch){ document.body.classList.remove('spec'); return spLeave(); } if(PV.r) pvSend({t:'quit'}); if(G&&G.pvp){ G.over=true; stopMeter(); } pvReset(); PV.final=null; go('home'); }
+function pvLeave(){ mmStop(); if(PV.watch){ document.body.classList.remove('spec'); return spLeave(); } if(PV.r) pvSend({t:'quit'}); if(G&&G.pvp){ G.over=true; stopMeter(); } pvReset(); PV.final=null; go('home'); }
 function pvOnMsg(m){ const d=m.data||{}; if(!d||typeof d!=='object'||m.sameTab) return;
   if(d.t==='emo'){ if(d.n&&PV.seen[d.n]) return; if(d.n) PV.seen[d.n]=1; emoShow(d); if(PV.host) pvSend(d); return; }   // 방장이 모두에게 다시 전함
   if(PV.watch){ spOnMsg(d); return; }
@@ -3756,7 +3808,9 @@ function renderPvp(){ const b=document.getElementById('pvpBody'); if(!b||!state)
     b.innerHTML=`<div class="pv-card" style="text-align:center;"><div class="pv-code" style="font-size:34px;letter-spacing:2px;">${w}</div><p class="hint">나 ${f.my} : ${f.op} 상대</p>
       <button class="btn gold" id="pvAgain">다시 하기</button></div>`;
     document.getElementById('pvAgain').onclick=()=>{ PV.final=null; pvReset(); renderPvp(); }; return; }
-  if(!PV.r){ b.innerHTML=`<div class="pv-card"><div class="pv-h">방 만들기</div><p class="hint" style="margin:4px 0 10px;">코드를 만들어 친구에게 알려 주세요. 방장이 원정(초 공격)이에요.</p>
+  if(!PV.r){ b.innerHTML=`<div class="pv-card mm-card"><div class="pv-h">랜덤 매칭 <small>3이닝 고정</small></div><p class="hint" style="margin:4px 0 10px;">방 코드 없이 지금 랜덤 매칭을 누른 다른 플레이어와 바로 1:1 대전을 해요.</p>
+      ${MM.on?`<p class="hint"><span class="spin"></span> ${esc(MM.st||'상대를 찾는 중...')}</p><button class="btn ghost" id="mmCancel">매칭 취소</button>`:`<button class="btn gold" id="mmGo">랜덤 매칭 시작</button>${MM.st?`<p class="hint" style="margin-top:6px;">${esc(MM.st)}</p>`:''}`}</div>
+    <div class="pv-card"><div class="pv-h">방 만들기</div><p class="hint" style="margin:4px 0 10px;">코드를 만들어 친구에게 알려 주세요. 방장이 원정(초 공격)이에요.</p>
       <div class="pv-seg">${PV_INN.map(n=>`<button class="btn ${PV.maxInn===n?'gold':'ghost'}" data-inn="${n}">${n}이닝</button>`).join('')}</div>
       ${extraSw('pvExtra')}
       <button class="btn primary" id="pvCreate" style="margin-top:10px;">방 만들기</button></div>
@@ -3764,8 +3818,10 @@ function renderPvp(){ const b=document.getElementById('pvpBody'); if(!b||!state)
       <div class="row" style="margin-top:10px;"><button class="btn gold" id="pvJoin" style="flex:1;">참가하기</button><button class="btn ghost" id="pvWatchBtn" style="flex:1;">관전하기</button></div></div>
     <p class="hint" id="pvStatus">${PV.status||'경기는 리그 모드와 같아요: 수비 때는 구종·코스를 골라 게이지로 던지고, 공격 때는 친구가 던진 공을 타이밍 맞춰 쳐요. 두 사람 모두 지금 팀 설정의 라인업과 투수진을 써요.'}</p>`;
     b.querySelectorAll('[data-inn]').forEach(e=>e.onclick=()=>{ PV.maxInn=+e.dataset.inn; renderPvp(); });
+    { const g=document.getElementById('mmGo'); if(g) g.onclick=mmStart; const c=document.getElementById('mmCancel'); if(c) c.onclick=()=>{ mmStop(); MM.st=''; pvReset(); renderPvp(); }; }
     document.getElementById('pvCreate').onclick=pvCreate; document.getElementById('pvJoin').onclick=pvJoin; document.getElementById('pvWatchBtn').onclick=()=>pvWatch();
     { const x=document.getElementById('pvExtra'); if(x) x.onclick=()=>{ PV.extra=!PV.extra; renderPvp(); }; } return; }
+  if(PV.mm&&PV.host&&!PV.oppT){ b.innerHTML=`<div class="pv-card" style="text-align:center;"><div class="pv-h">랜덤 매칭</div><p class="hint"><span class="spin"></span> 상대를 기다리는 중... (3이닝)</p><p class="hint">이 화면에 있으면 다른 플레이어가 랜덤 매칭을 누를 때 바로 연결돼요.</p><button class="btn ghost" id="pvOut">매칭 취소</button></div>`; document.getElementById('pvOut').onclick=()=>{ mmStop(); MM.st=''; pvReset(); renderPvp(); }; return; }
   b.innerHTML=`<div class="pv-card" style="text-align:center;">${PV.host?`<div class="pv-h">방 코드</div><div class="pv-code">${PV.code}</div><p class="hint">친구에게 이 코드를 알려 주세요. 들어오면 바로 경기 화면으로 넘어가요. (${PV.maxInn}이닝)</p>`:'<div class="pv-h">연결 중</div>'}
       <p class="hint" id="pvStatus">${PV.status}</p>${PV.host?`<p class="hint">${PV.maxInn}이닝 · 연장전 ${PV.extra?'있음':'없음'} · 관전자 ${Object.keys(PV.specs).length}/${SPEC_MAX}</p><button class="btn gold" id="pvSpInv" style="margin-bottom:8px;">관전자 초대</button>`:''}<button class="btn ghost" id="pvOut">나가기</button></div>`;
   document.getElementById('pvOut').onclick=pvLeave; { const x=document.getElementById('pvSpInv'); if(x) x.onclick=openSpInv; } }
@@ -5227,17 +5283,22 @@ document.getElementById('pickClose').onclick=()=>document.getElementById('pickSt
 /* 상대는 진화·어드민 효과 없이 원래 능력치로 (내 카드 진화가 상대에게 옮겨가지 않게) */
 function baseCopy(p){ const q=Object.assign({},p,p._base.stats); q.pitches=p.pitches.map((x,j)=>({...x,g:p._base.pg[j]})); q.team=TEAMOF[p.code]; q.team2=FROMOF[p.code]||null; return q; }
 /* 스테이지 200개: 상대 평균 능력치 1(D)에서 시작해 200스테이지에서 12.5(MAX 이상)까지 조금씩 오름 */
-const STAGE_MAX=1000;
+const STAGE_MAX=1500;
 /* 상대 평균 능력치 (스테이지별로 나눠 배분)
    1~200: 예전 곡선 그대로(200에서 12.5) / 201~500: 13.2까지 / 501~900: 14.0(일반 최대치+2)까지 / 901~1000: 상한을 풀고 16.0까지 */
 function stageTarget(n){ n=Math.min(STAGE_MAX,Math.max(1,n)); if(n<=200){ const x=(n-1)/199; return 1+11.5*Math.pow(x,0.85); }
-  if(n<=500) return 12.5+0.7*(n-200)/300; if(n<=900) return 13.2+0.8*(n-500)/400; return 14+2*(n-900)/100; }
-function stageCap(n){ return n>900?STAT_MAX+2+2*(n-900)/100:STAT_MAX+2; }   // 901부터 능력치 상한이 올라감 (1000에서 16)
-function stageVeloAdd(n){ return n>900?18*(n-900)/100:n>500?4*(n-500)/400:0; }   // 상대 투수 최고 구속: 1000에서 180km/h까지
+  if(n<=500) return 12.5+0.7*(n-200)/300; if(n<=900) return 13.2+0.8*(n-500)/400; if(n<=1000) return 14+6*(n-900)/100;   // 1000: 평균 20
+  if(n<=1400) return 20+5*(n-1000)/400; return 25+5*(n-1400)/100; }   // 1400: 평균 25(전부 MAX) / 1500: 평균 30(전부 MAX)
+function stageCap(n){ if(n>=1400) return stageTarget(n); if(n>900) return Math.max(STAT_MAX+2,stageTarget(n)+2); return STAT_MAX+2; }   // 1400부터 상한 = 목표치: 모든 능력치가 MAX(목표치)로 똑같이   // 901부터 능력치 상한이 올라감 (1000에서 16)
+function stageVeloAdd(n){ if(n>1400) return 18+10*Math.min(1,(n-1400)/100); if(n>1000) return 8+10*(n-1000)/400; if(n>900) return 4+4*(n-900)/100; return n>500?4*(n-500)/400:0; }   // 최고 구속: 1000 170 / 1400 180 / 1500(엔딩) 190km/h   // 상대 투수 최고 구속: 1000에서 180km/h까지
 /* 상대 AI 실력 (능력치와 별개: 공 고르는 눈, 컨택, 코너 제구, 수비 판단)
    1: 0.25 -> 450: 0.8 -> 900: 1.6 -> 1000: 4.0 (1000은 모든 능력치 MAX + 특성으로도 이길 수 없게) */
+/* 상대 호수비 확률: 1400부터 50% 이상 (1500에서 65%) */
+function niceP(){ let p=(Math.max(0,fieldTeamAvg('def')-5)*0.03+(!G.top?.025*aiSkill():0))*(tcHas(curBatter(),'hDES')?0.5:1);
+  const n=G.stage||(state&&state.stage)||1; if(!G.top&&!G.prac&&!G.hr&&!G.pvp&&n>=1400) p=Math.max(p,0.5+0.15*Math.min(1,(n-1400)/100)); return p; }
 function aiSkill(){ if(!G||G.pvp||G.prac||G.hr) return 0; const n=G.stage||(state&&state.stage)||1; let k=0.25+0.55*Math.min(1,(n-1)/449);
-  if(n>450) k+=0.8*Math.min(1,(n-450)/450); if(n>900) k+=2.4*Math.pow(Math.min(1,(n-900)/100),1.5); return k; }
+  if(n>450) k+=0.8*Math.min(1,(n-450)/450); if(n>900) k+=2.4*Math.pow(Math.min(1,(n-900)/100),1.5);
+  if(n>1000) k+=2*Math.min(1,(n-1000)/400); if(n>1400) k+=3*Math.min(1,(n-1400)/100); return k; }   // 1400: 6.0 / 1500: 9.0
 /* 보상 (9이닝 기준, 이닝이 짧으면 비율대로): 1스테이지 승리 약 8천 BP(주장팩 1장) → 100스테이지 약 3만(레전드팩 1장) → 200스테이지 약 5만 */
 function stageWin(n){ return Math.round((8000+220*(n-1))/100)*100; }
 const SERIES_WINS=10;   // 한 스테이지 = 시리즈: 10승을 채우면 다음 스테이지
@@ -5251,7 +5312,7 @@ function scaleTo(p,target,isP){   // 실제 선수 개성(강약 차이)은 살�
   const d=target-vals.reduce((a,b)=>a+b,0)/vals.length, cl=v=>Math.max(0.5,Math.min(CAP,v+d));
   const q=Object.assign({},p); keys.forEach(k=>q[k]=cl(p[k]||5));
   if(isP){ q.pitches=p.pitches.map(x=>x.g>0?Object.assign({},x,{g:Math.max(0.5,Math.min(CAP,Math.round((x.g+d)*2)/2))}):x);
-    q.velo=Math.round(clamp(126+target*2+(p.velo-145)*0.6+VA,118,Math.min(180,162+VA))); q.maxVelo=Math.min(180,q.velo+3); q.vcap=Math.min(180,162+VA); }
+    q.velo=Math.round(clamp(126+target*2+(p.velo-145)*0.6+VA,118,Math.min(190,162+VA))); q.maxVelo=Math.min(190,q.velo+3); q.vcap=Math.min(190,162+VA); }
   return q;
 }
 function makeOpp(){
@@ -5694,7 +5755,7 @@ function evHit(n,txt){
   if(G&&G.hr) return hrPitchDone(n===4,txt);
   if(G&&n===4) G._paHR=true;   // 홈런볼: 다음 타석에
   // 수비팀 수비력: 좋은 수비는 안타성 타구 일부를 아웃으로
-  if(n<4 && !evHit._in && (G.pvp?G._pvpDef:Math.random()<(Math.max(0,fieldTeamAvg('def')-5)*0.03+(!G.top?.025*aiSkill():0))*(tcHas(curBatter(),'hDES')?0.5:1))){ const msg='호수비에 걸렸다! '+txt.replace(/!$/,'')+' 무산';
+  if(n<4 && !evHit._in && (G.pvp?G._pvpDef:Math.random()<niceP())){ const msg='호수비에 걸렸다! '+txt.replace(/!$/,'')+' 무산';
     if(hlEligible()&&HL.mode==='all'){ const gid=G.id, Lf=G.lineups[1-bt()]||[], slots=n>=2?['LF','CF','RF']:['SS','2B','3B','1B','LF','CF','RF'], sl=pick(slots), Fp=Lf.find(p=>p&&p.slot===sl)||Lf.find(p=>p&&p.slot&&slots.includes(p.slot))||Lf[0];
       try{ dfPlay({B:curBatter(),F:Fp||curBatter(),slot:(Fp&&DF_POS[Fp.slot])?Fp.slot:sl,bTeam:batterTeamId(),fTeam:pitcherTeamId()},()=>{ if(G&&G.id===gid&&!G.over) evOut(msg); }); return; }catch(e){ console.error(e); } }
     return evOut(msg); }
@@ -9950,16 +10011,52 @@ function exportState(){   // 카드 번호 대신 카드 코드로 적어 짧게
 function importState(o){ if(!o||!o.byCode) return o; const CI={}; DB.forEach(p=>CI[p.code]=p.i); const f=c=>CI[c]!=null?CI[c]:oldCodeIdx(c);
   ['owned','evo','trait','fa','tc'].forEach(k=>{ const m=o[k]; if(!m||typeof m!=='object') return; const n={}; Object.keys(m).forEach(c=>{ const i=f(c); if(i!=null) n[i]=m[c]; }); o[k]=n; });
   luIdx(o.lineup,f); (o.decks||[]).forEach(L=>luIdx(L,f)); delete o.byCode; delete o.codeAt; return o; }
+/* WEUS3: 카드 코드 대신 24비트 해시, 보유 카드는 이진(차이값+장수)으로 적고 전체를 압축. 예전 WEUS2보다 약 1/3 길이 */
+function scHash(c){ let h=2166136261; c=String(c); for(let k=0;k<c.length;k++){ h^=c.charCodeAt(k); h=Math.imul(h,16777619); } return (h>>>0)&0xFFFFFF; }
+function scMaps(){ const by={}, dup={}; DB.forEach(p=>{ const h=scHash(p.code); if(by[h]!=null&&by[h]!==p.i) dup[h]=1; else by[h]=p.i; }); return {by,dup}; }
+function vPush(a,n){ n=Math.max(0,Math.floor(n)); while(n>=128){ a.push((n&127)|128); n=Math.floor(n/128); } a.push(n); }
+function vRead(u,p){ let n=0,m=1,b; do{ b=u[p.i++]; n+=(b&127)*m; m*=128; }while(b&128); return n; }
+function b64u(u8){ let b=''; for(let i=0;i<u8.length;i+=0x8000) b+=String.fromCharCode.apply(null,u8.subarray(i,i+0x8000)); return btoa(b).replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,''); }
+function ub64u(t){ const bin=atob(t.replace(/-/g,'+').replace(/_/g,'/')), u=new Uint8Array(bin.length); for(let k=0;k<bin.length;k++) u[k]=bin.charCodeAt(k); return u; }
+async function packV3(){ const {dup}=scMaps(), key=i=>{ const p=DB[i]; if(!p) return null; const h=scHash(p.code); return dup[h]?p.code:'~'+h.toString(36); };
+  const o=JSON.parse(JSON.stringify(state)); ['_localOK','admin','tester','codeAt','lastSeen','_luFixed'].forEach(k=>delete o[k]);
+  const own=o.owned||{}, L=[], ox={};
+  Object.keys(own).forEach(i=>{ const c=own[i]|0, p=DB[i]; if(!p||c<=0) return; const h=scHash(p.code); if(dup[h]) ox[p.code]=c; else L.push([h,c]); });
+  L.sort((a,b)=>a[0]-b[0]); const bin=[]; vPush(bin,L.length); let prev=0; L.forEach(([h,c])=>{ vPush(bin,h-prev); vPush(bin,c); prev=h; });
+  delete o.owned; if(Object.keys(ox).length) o.ox=ox;
+  ['evo','trait','fa','tc'].forEach(k=>{ const m=o[k]; if(!m||typeof m!=='object') return; const n={}; Object.keys(m).forEach(i=>{ const kk=key(i); if(kk!=null&&m[i]) n[kk]=m[i]; }); o[k]=n; });
+  luIdx(o.lineup,key); (o.decks||[]).forEach(Lu=>luIdx(Lu,key)); o.v3=1;
+  const js=new TextEncoder().encode(JSON.stringify(o)), head=[]; vPush(head,js.length);
+  const all=new Uint8Array(head.length+js.length+bin.length); all.set(head,0); all.set(js,head.length); all.set(bin,head.length+js.length);
+  const z=new Uint8Array(await new Response(new Blob([all]).stream().pipeThrough(new CompressionStream('deflate-raw'))).arrayBuffer());
+  return 'WEUS4:'+hgEnc(z); }
+/* 한글 글자 하나에 13비트 (영문 base64는 6비트) → 같은 내용이 약 절반 길이. 복사·붙여넣기 해도 깨지지 않는 완성형 한글만 씀 */
+function hgEnc(u8){ const hd=[]; vPush(hd,u8.length); const a=new Uint8Array(hd.length+u8.length); a.set(hd,0); a.set(u8,hd.length);
+  let out='', acc=0, nb=0; for(let k=0;k<a.length;k++){ acc=(acc*256)+a[k]; nb+=8; while(nb>=13){ nb-=13; const v=Math.floor(acc/2**nb)&8191; out+=String.fromCharCode(0xAC00+v); acc%=2**nb; } }
+  if(nb>0) out+=String.fromCharCode(0xAC00+((acc*2**(13-nb))&8191)); return out; }
+function hgDec(t){ const by=[]; let acc=0, nb=0; for(const ch of t){ const v=ch.charCodeAt(0)-0xAC00; if(v<0||v>8191) continue; acc=acc*8192+v; nb+=13; while(nb>=8){ nb-=8; by.push(Math.floor(acc/2**nb)&255); acc%=2**nb; } }
+  const u=new Uint8Array(by), p={i:0}, n=vRead(u,p); return u.subarray(p.i,p.i+n); }
+async function unpackV3(t,raw){ const u0=raw||ub64u(t), u=new Uint8Array(await new Response(new Blob([u0]).stream().pipeThrough(new DecompressionStream('deflate-raw'))).arrayBuffer());
+  const p={i:0}, jl=vRead(u,p), o=JSON.parse(new TextDecoder().decode(u.subarray(p.i,p.i+jl))); p.i+=jl;
+  const {by}=scMaps(), CI={}; DB.forEach(q=>CI[q.code]=q.i);
+  const idx=k=>{ if(typeof k==='number') return k; k=String(k); if(k[0]==='~'){ const i=by[parseInt(k.slice(1),36)]; return i!=null?i:null; } return CI[k]!=null?CI[k]:oldCodeIdx(k); };
+  const own={}, n=vRead(u,p); let h=0; for(let k=0;k<n;k++){ h+=vRead(u,p); const c=vRead(u,p), i=by[h]; if(i!=null) own[i]=c; }
+  Object.keys(o.ox||{}).forEach(c=>{ const i=idx(c); if(i!=null) own[i]=o.ox[c]; }); delete o.ox; o.owned=own;
+  ['evo','trait','fa','tc'].forEach(k=>{ const m=o[k]; if(!m||typeof m!=='object') return; const nn={}; Object.keys(m).forEach(c=>{ const i=idx(c); if(i!=null) nn[i]=m[c]; }); o[k]=nn; });
+  luIdx(o.lineup,idx); (o.decks||[]).forEach(Lu=>luIdx(Lu,idx)); delete o.v3; return o; }
 async function makeSaveCode(){
   const z=await zip64(JSON.stringify(exportState()));
   try{ await cloudInit(); }catch(e){}
   if(CLOUD.ok&&CLOUD.db){ for(let t=0;t<3;t++){ let c=''; for(let k=0;k<8;k++) c+=SC_ABC[Math.floor(Math.random()*SC_ABC.length)];
       try{ const ref=CLOUD.db.doc('savecodes/'+c); const ex=await ref.get(); if(ex.exists) continue;
         await ref.set({z,at:Date.now(),exp:Date.now()+30*864e5}); return `WEUS-${c.slice(0,4)}-${c.slice(4)}`; }catch(e){ break; } } }
+  try{ if(typeof CompressionStream!=='undefined') return await packV3(); }catch(e){ console.error(e); }
   return 'WEUS2:'+z; }
 async function readSaveCode(v){
   v=v.trim(); if(v.startsWith('WEUS1:')) return JSON.parse(decodeURIComponent(escape(atob(v.slice(6)))));
   if(v.startsWith('WEUS2:')) return importState(JSON.parse(await unzip64(v.slice(6))));
+  if(v.startsWith('WEUS3:')) return await unpackV3(v.slice(6).replace(/\s+/g,''));
+  if(v.startsWith('WEUS4:')) return await unpackV3(null,hgDec(v.slice(6).replace(/\s+/g,'')));
   const c=v.toUpperCase().replace(/[^A-Z0-9]/g,'').replace(/^WEUS/,'');
   if(c.length!==8) throw 0;
   try{ await cloudInit(); }catch(e){} if(!CLOUD.ok||!CLOUD.db) throw {msg:'짧은 코드는 클라우드에 연결돼야 불러올 수 있어요.'};
@@ -9975,7 +10072,7 @@ const COUPONS={
   FORWHRICKUSERS:{t:'forwhrickusers',rw:[{gem:300000},{it:'pk_K',n:5}]},
   FORWHOKSST:{t:'forwhoksst',rw:[{it:'pkt_S_삼성',n:150},{it:'pkt_S2_삼성',n:150},{it:'pkt_L_삼성',n:30},{it:'pk_F',n:200}]},
   IAMKOREAN:{t:'iamkorean',rw:[{it:'pk_R',n:100},{bp:380000}]}};
-function useCoupon(raw){ const v=String(raw||'').trim(); if(!v||/^WEUS/i.test(v)) return false;
+function useCoupon(raw){ const v=String(raw||'').trim(); if(!v||/^WEUS/i.test(v)||v.length>60) return false;
   const m=v.replace(/\s+/g,'').match(/^([\d,]+)BP$/i);
   if(m){ const n=parseInt(m[1].replace(/,/g,''),10);   // 소원을 말해봐: 숫자+BP
     if(qF('wish')){ toast('소원은 한 번만 빌 수 있어요.'); return true; }
