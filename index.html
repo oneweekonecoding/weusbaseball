@@ -1211,6 +1211,24 @@ gap:12px;align-items:center;border:1px solid var(--line);border-radius:14px;back
 #faSc .fs-terms div{display:flex;justify-content:space-between;gap:10px}
 #faSc .fs-terms span{color:#666}
 #faSc .fs-terms b{color:#1d1d1f;text-align:right}
+#trSc{position:fixed;inset:0;z-index:9500;background:#000;overflow:hidden;--fade:0;transition:opacity .3s}
+#trSc.out{opacity:0}
+#trSc.flat{background:radial-gradient(circle at 50% 40%,#3a3f4a,#0c0d10)}
+#trSc canvas{position:absolute;inset:0;opacity:var(--fade)}
+#trSc .ts-msg{position:absolute;left:12px;right:12px;bottom:calc(env(safe-area-inset-bottom) + 20px);padding:12px 16px 14px;border-radius:14px;background:rgba(10,12,18,.86);border:1px solid rgba(255,255,255,.16);border-left:5px solid var(--tc);color:#fff;opacity:0;transform:translateY(14px);transition:opacity .4s,transform .4s;pointer-events:none;box-shadow:0 8px 24px rgba(0,0,0,.45)}
+#trSc .ts-msg.on{opacity:1;transform:none}
+#trSc .ts-own{border-left-color:#ffd76a}
+#trSc .ts-own p{font-size:18px}
+#trSc .ts-msg small{display:block;font-size:12px;font-weight:800;color:#ffd76a;margin-bottom:4px}
+#trSc .ts-msg p{margin:0;font-size:16px;line-height:1.5;font-weight:700;word-break:keep-all}
+#trSc .ts-done{position:absolute;left:0;right:0;bottom:0;padding:70px 16px calc(env(safe-area-inset-bottom) + 22px);text-align:center;color:#fff;opacity:0;transform:translateY(20px);transition:opacity .5s,transform .5s;pointer-events:none;background:linear-gradient(180deg,rgba(0,0,0,0),rgba(0,0,0,.72) 45%,rgba(0,0,0,.88))}
+#trSc .ts-done.on{opacity:1;transform:none}
+#trSc .ts-done>div{display:inline-block;min-width:min(78vw,320px);padding:14px 22px 16px;border-radius:16px;background:rgba(10,12,18,.84);border:1px solid rgba(255,255,255,.18);border-top:4px solid var(--tc)}
+#trSc .ts-done small{display:block;font-size:11px;letter-spacing:.32em;color:#ffd76a}
+#trSc .ts-done b{display:block;font-size:30px;font-weight:900;margin:4px 0 2px}
+#trSc .ts-done span{display:block;font-size:15px;font-weight:700;color:#e9edf5}
+#trSc .ts-done em{display:block;margin-top:12px;font-size:12px;font-style:normal;color:#cfd5df}
+#trSc .ts-skip{position:absolute;top:calc(env(safe-area-inset-top) + 12px);right:12px;background:rgba(0,0,0,.45);color:#fff;border:1px solid rgba(255,255,255,.35);border-radius:16px;padding:6px 12px;font-size:12px}
 #faSc .fs-skip{position:absolute;top:calc(env(safe-area-inset-top) + 12px);right:12px;background:rgba(0,0,0,.45);color:#fff;border:1px solid rgba(255,255,255,.35);border-radius:16px;padding:6px 12px;font-size:12px}
 .fa-tbl{margin:6px 0 4px;font-size:12px}
 .fa-tbl summary{cursor:pointer;color:var(--muted,#9aa)}
@@ -4966,10 +4984,10 @@ function renderTrade(){
     const pool=DB.filter(p=>p.grade===series);
     const list=pool.filter(p=>!q||cardMatch(p,q))
       .sort((a,b)=>nm(a).localeCompare(nm(b),'ko')||(a.year||0)-(b.year||0));
-    tgt.innerHTML=`<div class="pc-lbl">받고 싶은 선수 · <b>${sname}</b> ${list.length}/${pool.length}명</div><input class="tsearch" id="tSearch" placeholder="이름 · 구단 · 연도 · 포지션 검색" value="${q.replace(/"/g,'')}">
-      <div class="plist">${list.length?'':'<div class="pitem" style="cursor:default;">검색 결과가 없어요</div>'}${list.map(p=>`<div class="pitem ${TR.pick===p.i?'on':''}" data-i="${p.i}"><span class="ser s-${p.sig2?'S2':p.grade}">${p.sig2?'S2':p.grade}</span><b>${nm(p)}</b><small>${tagOf(p)} · ${p.pos} · ${clubName(p.team)}</small>${state.owned[p.i]>0?'<em>보유</em>':''}</div>`).join('')}</div>`;
+    qPatch(tgt,`<div class="pc-lbl">받고 싶은 선수 · <b>${sname}</b> ${list.length}/${pool.length}명</div><input class="tsearch" id="tSearch" placeholder="이름 · 구단 · 연도 · 포지션 검색" value="${q.replace(/"/g,'')}">
+      <div class="plist">${list.length?'':'<div class="pitem" style="cursor:default;">검색 결과가 없어요</div>'}${list.map(p=>`<div class="pitem ${TR.pick===p.i?'on':''}" data-i="${p.i}"><span class="ser s-${p.sig2?'S2':p.grade}">${p.sig2?'S2':p.grade}</span><b>${nm(p)}</b><small>${tagOf(p)} · ${p.pos} · ${clubName(p.team)}</small>${state.owned[p.i]>0?'<em>보유</em>':''}</div>`).join('')}</div>`,'tSearch');
     const inp=document.getElementById('tSearch');
-    inp.oninput=()=>{ TR.q=inp.value; const pos=inp.selectionStart; renderTrade(); const ni=document.getElementById('tSearch'); ni.focus(); try{ni.setSelectionRange(pos,pos);}catch(e){} };
+    inp.oninput=()=>{ TR.q=inp.value; renderTrade(); };
     tgt.querySelectorAll('.pitem').forEach(el=>el.onclick=()=>{TR.pick=+el.dataset.i;renderTrade();});
   }
   const ready=(n>=TR_MIN&&n<TR_FULL&&TR.team)||(n===TR_FULL&&TR.pick!==null);
@@ -5005,16 +5023,139 @@ document.getElementById('btnTrade').onclick=()=>{
     let pool=same.filter(p=>okHit?inClub(p,TR.team):!inClub(p,TR.team)); if(!pool.length) pool=same;
     got=pick(pool);
   } else return;
-  TR.sel.forEach(i=>{ state.owned[i]--; }); qAdd('tr');
+  TR.sel0=TR.sel.slice(); TR.sel.forEach(i=>{ state.owned[i]--; }); qAdd('tr');
   const isNew=!(state.owned[got.i]>0);
   state.owned[got.i]=(state.owned[got.i]||0)+1;
   const team=TR.team; TR.sel=[]; TR.team=null; TR.pick=null; TR.q='';
+  const sent=[...new Set(TR.sel0)].map(i=>DB[i]);
   saveGame(); renderTrade();
-  playPackReveal(got,isNew);
-  if(n<TR_FULL) setTimeout(()=>toast(okHit?`트레이드 성공! ${clubName(team)} 선수가 왔어요.`:`아쉽게도 ${clubName(got.team)} 선수가 왔어요.`),1700);
+  const after=()=>{ playPackReveal(got,isNew); if(n<TR_FULL) setTimeout(()=>toast(okHit?`트레이드 성공! ${clubName(team)} 선수가 왔어요.`:`아쉽게도 ${clubName(got.team)} 선수가 왔어요.`),1700); };
+  try{ trSwapScene(sent,got,after,n<TR_FULL?okHit:null); }catch(e){ console.error(e); after(); }
 };
+/* ============ v211: 트레이드 장면 (3D 라커룸) ============
+   보낸 선수(최대 3명까지 3D로)가 가방과 짐을 메고 문을 열고 나감 -> 3초 빈 방 -> 새 선수가 우리 팀 유니폼을 입고 문을 열고 들어와 인사 -> 트레이드 완료 */
+function trSwapScene(sent,got,done,hit){   // hit: 확률 트레이드면 지정한 구단 선수가 왔는지 (true/false), 확정 트레이드면 null
+  const old=document.getElementById('trSc'); if(old) old.remove();
+  const myTeam=myClub()||state.team, wallHex=(typeof FA_WALL!=='undefined'&&(FA_WALL[myTeam]||FA_WALL[state.team]))||uniOf(myTeam).c, esc=v=>String(v).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+  const shown=sent.slice(0,3), names=sent.map(nm), who=names.length>3?names.slice(0,3).join(', ')+` 외 ${names.length-3}명`:names.join(', ');
+  const fromClub=clubName(TEAMOF[got.code]||got.team);
+  const wrap=document.createElement('div'); wrap.id='trSc'; wrap.style.setProperty('--tc',wallHex);
+  wrap.innerHTML=`<canvas></canvas><div class="ts-msg" data-m="bye"><small>${esc(who)}</small><p>그동안 수고하셨습니다</p></div>
+    <div class="ts-msg" data-m="hi"><small>${esc(nm(got))}</small><p>안녕하십니까, 이번에 ${esc(fromClub)}에서 이적해온 ${esc(nm(got))}입니다. 잘 부탁드립니다</p></div>
+    <div class="ts-msg ts-own" data-m="v"><small>구단주</small><p>${hit==null?'':hit?'내가 찾던 선수가 맞는 것 같군.':'내가 찾던 선수가 아닌 것 같은데.'}</p></div>
+    <div class="ts-done"><div><small>TRADE COMPLETE</small><b>트레이드 완료</b><span>${esc(nm(got))} · ${esc(clubName(myTeam))} 합류</span></div><em>화면을 누르면 닫혀요</em></div>
+    <button class="fs-skip ts-skip">건너뛰기 ›</button>`;
+  document.body.appendChild(wrap);
+  const cv=wrap.querySelector('canvas'), mBye=wrap.querySelector('[data-m="bye"]'), mHi=wrap.querySelector('[data-m="hi"]'), tdone=wrap.querySelector('.ts-done'), mV=wrap.querySelector('[data-m="v"]');
+  let fin=false, raf=0, S={}, gl=null; const texs=[];
+  const end=()=>{ if(fin) return; fin=true; cancelAnimationFrame(raf); if(gl) hlLose(gl); wrap.classList.add('out'); setTimeout(()=>wrap.remove(),300); if(done) done(); };
+  wrap.querySelector('.ts-skip').onclick=e=>{ e.stopPropagation(); end(); };
+  try{ if(PF3D.on&&window.WebGLRenderingContext) gl=hlGLSetup(S,cv); }catch(e){ gl=null; }
+  if(!gl){ cv.style.display='none'; wrap.classList.add('flat'); mBye.classList.add('on');
+    setTimeout(()=>{ if(fin) return; mBye.classList.remove('on'); mHi.classList.add('on'); },2200);
+    if(hit!=null) setTimeout(()=>{ if(fin) return; mHi.classList.remove('on'); mV.classList.add('on'); },4600);
+    setTimeout(()=>{ if(fin) return; mV.classList.remove('on'); mHi.classList.remove('on'); tdone.classList.add('on'); wrap.onclick=end; },hit!=null?7200:4600); return; }
+  const dpr=gqDpr(1.75); cv.width=Math.round(window.innerWidth*dpr); cv.height=Math.round(window.innerHeight*dpr); cv.style.width=window.innerWidth+'px'; cv.style.height=window.innerHeight+'px';
+  const c4=(h,a)=>{ const q=hex3(h); return [q[0],q[1],q[2],a==null?1:a]; }, mulc=(c,f)=>[Math.min(1,c[0]*f),Math.min(1,c[1]*f),Math.min(1,c[2]*f),c[3]];
+  const quad=(M,a,b,c,d,n,ca,cb,cc,cd)=>{ const s0=M.n; M.vert(a,n,ca); M.vert(b,n,cb||ca); M.vert(c,n,cc||ca); M.vert(d,n,cd||ca); M.i.push(s0,s0+1,s0+2,s0,s0+2,s0+3); };
+  const hexa=(M,P,col)=>{ const sd=mulc(col,.8), F=[[0,1,2,3,[0,-1,0],col],[4,5,6,7,[0,1,0],sd],[0,1,5,4,null,col],[3,2,6,7,null,sd],[0,3,7,4,null,sd],[1,2,6,5,null,col]];   // 꼭짓점 8개로 상자 (0-3 위, 4-7 아래)
+    F.forEach(f=>{ let n=f[4]; if(!n){ const a=P[f[0]],b=P[f[1]],c=P[f[2]]; n=V3.nrm(V3.cross(V3.sub(b,a),V3.sub(c,a))); } quad(M,P[f[0]],P[f[1]],P[f[2]],P[f[3]],n,f[5]); }); };
+  const box=(M,x0,y0,z0,x1,y1,z1,col,top)=>{ hexa(M,[[x0,y0,z0],[x1,y0,z0],[x1,y0,z1],[x0,y0,z1],[x0,y1,z0],[x1,y1,z0],[x1,y1,z1],[x0,y1,z1]],col); if(top) quad(M,[x0,y0-.05,z0],[x1,y0-.05,z0],[x1,y0-.05,z1],[x0,y0-.05,z1],[0,-1,0],top); };
+  /* ---- 라커룸 ---- */
+  const BG=new PFMesh(), RM=new PFMesh(), wall=c4(wallHex), WZ=80, DX0=40, DW=52, DH=108, DX1=DX0+DW, HZ=WZ+90;
+  { const tA=c4('#cfc9bf'), tB=c4('#c3bdb2'); for(let i=0;i<12;i++) for(let j=0;j<11;j++){ const xa=-300+50*i, za=-470+50*j, f=.78+.22*(za+470)/550; quad(BG,[xa,0,za],[xa+50,0,za],[xa+50,0,za+50],[xa,0,za+50],[0,-1,0],mulc((i+j)%2?tA:tB,f)); } }   // 바닥 타일
+  const ce=c4('#ecebe7'); quad(BG,[-300,-240,-470],[300,-240,-470],[300,-240,WZ],[-300,-240,WZ],[0,1,0],mulc(ce,.8));
+  [[-80,-300],[80,-300],[-80,-120],[80,-120],[-80,40],[80,40]].forEach(([x,z])=>quad(BG,[x-26,-239,z-30],[x+26,-239,z-30],[x+26,-239,z+30],[x-26,-239,z+30],[0,1,0],c4('#ffffff')));
+  // 뒤 벽 (문 자리는 비움) + 복도
+  const wq=(x0,x1,y0,y1)=>{ const lum=x=>.72+.32*Math.exp(-Math.pow((x-20)/200,2)); quad(RM,[x0,y0,WZ],[x1,y0,WZ],[x1,y1,WZ],[x0,y1,WZ],[0,0,-1],mulc(wall,lum(x0)),mulc(wall,lum(x1)),mulc(wall,lum(x1)*.9),mulc(wall,lum(x0)*.9)); };
+  for(let x=-300;x<DX0;x+=40) wq(x,Math.min(DX0,x+40),-240,0); for(let x=DX1;x<300;x+=40) wq(x,Math.min(300,x+40),-240,0); wq(DX0,DX1,-240,-DH);
+  box(RM,-300,-6,WZ-1,DX0,0,WZ,mulc(wall,.35)); box(RM,DX1,-6,WZ-1,300,0,WZ,mulc(wall,.35));
+  const trim=c4('#2a2a2e'); box(RM,DX0-4,-DH-4,WZ-2,DX0,0,WZ+2,trim); box(RM,DX1,-DH-4,WZ-2,DX1+4,0,WZ+2,trim); box(RM,DX0-4,-DH-4,WZ-2,DX1+4,-DH,WZ+2,trim);
+  const hall=c4('#f1efe9'); quad(RM,[DX0-30,-140,HZ],[DX1+30,-140,HZ],[DX1+30,0,HZ],[DX0-30,0,HZ],[0,0,-1],hall,hall,mulc(hall,.9),mulc(hall,.9));
+  quad(RM,[DX0-30,0,WZ],[DX1+30,0,WZ],[DX1+30,0,HZ],[DX0-30,0,HZ],[0,-1,0],c4('#d8d4cb')); [DX0-30,DX1+30].forEach(x=>quad(RM,[x,-140,WZ],[x,-140,HZ],[x,0,HZ],[x,0,WZ],[x<DX0?1:-1,0,0],c4('#e3dfd6')));
+  quad(RM,[DX0-30,-140,WZ],[DX1+30,-140,WZ],[DX1+30,-140,HZ],[DX0-30,-140,HZ],[0,1,0],c4('#fbfaf6'));
+  // 라커 (팀 색을 어둡게) + 벤치
+  const lk=mulc(wall,.9), lk2=mulc(wall,.55);
+  for(let i=0;i<8;i++){ const x0=-270+i*34; box(RM,x0,-124,WZ-26,x0+32,-4,WZ-1,lk); quad(RM,[x0+15.6,-122,WZ-26.1],[x0+16.4,-122,WZ-26.1],[x0+16.4,-6,WZ-26.1],[x0+16.4-.8,-6,WZ-26.1],[0,0,-1],lk2);
+    for(let v=0;v<4;v++) quad(RM,[x0+5,-112+v*3,WZ-26.15],[x0+12,-112+v*3,WZ-26.15],[x0+12,-111+v*3,WZ-26.15],[x0+5,-111+v*3,WZ-26.15],[0,0,-1],lk2);
+    quad(RM,[x0+20,-100,WZ-26.15],[x0+28,-100,WZ-26.15],[x0+28,-96,WZ-26.15],[x0+20,-96,WZ-26.15],[0,0,-1],c4('#f2f2f2')); }
+  box(RM,-262,-26,WZ-62,-62,-22,WZ-46,c4('#c99a62')); [-250,-160,-76].forEach(x=>box(RM,x,-22,WZ-58,x+5,0,WZ-50,mulc(wall,.5)));
+  box(RM,-300,-150,WZ-1.5,DX0-4,-142,WZ-.5,c4('#f4f4f4')); box(RM,DX1+4,-150,WZ-1.5,300,-142,WZ-.5,c4('#f4f4f4'));   // 벽 가로 띠
+  /* ---- 사람 ---- */
+  const look=(p,team)=>{ const T={tex:gl.createTexture()}; texs.push(T.tex); const L=btLook(p,team,gl,T), sk=L.X.C.skin;
+    return {bp:L.bp,tex:T.tex,X:Object.assign({},L.X,{noBat:true,helmet:false,flipU:v=>v,C:Object.assign({},L.X.C,{bglove:sk,gstrap:L.X.C.skin2})})}; };
+  const LV=shown.map(p=>look(p,p.team)), NW=look(got,myTeam);
+  const yawOf=d=>Math.atan2(-d[0],d[2])*180/Math.PI, sm=hlSm, mixV=(a,b,u)=>V3.add(V3.mul(a,1-u),V3.mul(b,u));
+  const path=pts=>{ const seg=[]; let tot=0; for(let i=0;i<pts.length-1;i++){ const l=V3.len(V3.sub(pts[i+1],pts[i])); seg.push(l); tot+=l; }
+    return {tot,at(s){ s=Math.max(0,Math.min(tot,s)); let i=0; while(i<seg.length-1&&s>seg[i]){ s-=seg[i]; i++; } const u=Math.min(1,s/seg[i]); return {p:mixV(pts[i],pts[i+1],u),d:V3.nrm(V3.sub(pts[i+1],pts[i]))}; }}; };
+  const SPD=72, DOORF=[DX0+DW/2,0,WZ-26], OUT=[DX0+DW/2,0,HZ+30];
+  // 걷기: 보폭 약 0.6m, 팔은 다리와 반대로
+  const walkK=(L,pos,face,s,mv,bag,reach)=>{ const ph=s/62, a=Math.sin(ph*Math.PI*2), side=[-face[2],0,face[0]], hy=yawOf(face);
+    const ft=(sg,lat)=>{ const sw=sg*a, lift=Math.max(0,Math.cos(ph*Math.PI*2)*sg)*5*mv; return V3.add(V3.add(V3.add(pos,V3.mul(face,sw*11*mv)),V3.mul(side,lat)),[0,-lift,0]); };
+    const o={pel:V3.add(pos,[0,-49.5+Math.abs(a)*1.2*mv,0]),fB:ft(1,5),fF:ft(-1,-5),hy,sy:hy-a*7*mv,lean:3+2*mv,tilt:0,g:V3.add(pos,[0,-60,0]),ba:0,be:-80,oh:0,ob:0,tip:0,mn:0,kin:0};
+    const k=bSkeleton(o,L.bp), dn=V3.mul(k.up,-1), UA=15*L.bp.armLen, FA=14*L.bp.armLen;
+    let tR=V3.add(V3.add(k.shR,V3.mul(dn,27.4)),V3.add(V3.mul(k.right,1.6),V3.mul(k.fw,1-a*7*mv))), tL=V3.add(V3.add(k.shL,V3.mul(dn,27.4)),V3.add(V3.mul(k.right,-1.6),V3.mul(k.fw,1+a*7*mv)));
+    if(bag) tL=V3.add(V3.add(k.shL,V3.mul(dn,9)),V3.add(V3.mul(k.fw,4),V3.mul(k.right,1)));   // 왼손은 어깨 가방끈을 잡음
+    if(reach&&reach.w>0) tR=mixV(tR,reach.p,reach.w);
+    const iL=pfIK(k.shL,tL,UA,FA,V3.add(V3.mul(k.fw,-.6),V3.mul(k.right,-1))), iR=pfIK(k.shR,tR,UA,FA,V3.add(V3.mul(k.fw,-.6),V3.mul(k.right,1)));
+    k.aG={sh:k.shL,el:iL.mid,hd:iL.end}; k.aT={sh:k.shR,el:iR.mid,hd:iR.end}; k.bd=V3.nrm(V3.sub(iR.end,iR.mid));
+    const ms=pfBodyMesh(k,0,Object.assign({},L.X,{look:face}));
+    if(bag){ const bk=c4('#1d1f24'), bk2=c4('#33363d'), cb=c4(bag);   // 백팩 + 어깨에 멘 더플백 (끈 포함)
+      pfEll(ms.M,V3.add(V3.add(k.neck,V3.mul(k.up,-12)),V3.mul(k.fw,-8.2)),k.right,k.up,k.fw,7.2,9.5,3.6,bk,8,12);
+      pfEll(ms.M,V3.add(V3.add(k.neck,V3.mul(k.up,-16)),V3.mul(k.fw,-11)),k.right,k.up,k.fw,5,4,1.6,bk2,6,10);
+      [-1,1].forEach(sg=>pfLimb(ms.M,V3.add(V3.add(k.neck,V3.mul(k.right,sg*5)),V3.mul(k.fw,-2)),V3.add(V3.add(k.neck,V3.mul(k.up,-20)),V3.add(V3.mul(k.right,sg*5.5),V3.mul(k.fw,-5))),k.fw,[[0,.7],[1,.7]],()=>bk2,6));
+      const dc=V3.add(V3.add(k.pel,V3.mul(k.right,12.5)),V3.add(V3.mul(k.up,4),V3.mul(k.fw,-1)));
+      pfEll(ms.M,dc,k.up,k.right,k.fw,5.2,5,11.5,cb,8,14); pfEll(ms.M,V3.add(dc,V3.mul(k.up,-.2)),k.up,k.right,k.fw,5.3,5.1,2.2,bk,6,10);
+      pfLimb(ms.M,V3.add(k.shL,V3.mul(k.up,1.5)),V3.add(dc,V3.mul(k.up,4.5)),k.fw,[[0,.75],[1,.75]],()=>bk,6); }
+    ms.tex=L.tex; return ms; };
+  // 시간표
+  const N=LV.length, T_BYE=.5, T_GO=2.3, GAP=.6;
+  const P0=i=>[4+(i-(N-1)/2)*36,0,6-Math.abs(i-(N-1)/2)*5];
+  const lvPath=shown.map((_,i)=>path([P0(i),[P0(i)[0]+10,0,12],DOORF,OUT])), lvStart=shown.map((_,i)=>T_GO+.5+i*GAP);
+  const arr=i=>lvStart[i]+(lvPath[i].tot-(V3.len(V3.sub(OUT,DOORF))))/SPD, pass=i=>arr(i)+40/SPD;
+  const D_OPEN=arr(0)-.45, D_CLOSE=pass(N-1)+.5, T_EMPTY=D_CLOSE+.8, T_IN=T_EMPTY+3.0;
+  const inPath=path([OUT,DOORF,[DX0+DW/2-20,0,20],[6,0,-8]]), T_IN0=T_IN+.6, T_ARR=T_IN0+inPath.tot/SPD, D2_OPEN=T_IN, D2_CLOSE=T_IN0+(V3.len(V3.sub(OUT,DOORF))+40)/SPD+.4;
+  const T_HI=T_ARR+.6, T_V=T_HI+3.4, T_DONE=T_V+(hit!=null?2.8:0);
+  const doorA=t=>{ const op=(t0,t1)=>sm((t-t0)/.55)*(1-sm((t-t1)/.7)); return Math.max(op(D_OPEN,D_CLOSE),op(D2_OPEN,D2_CLOSE))*82*Math.PI/180; };
+  const doorMesh=a=>{ const M=new PFMesh(), u=[Math.cos(a),0,Math.sin(a)], n=[-Math.sin(a),0,Math.cos(a)], h=[DX0,0,WZ], T=2.4, P=[], dc=c4('#e9e5dc'), hc=c4('#b9b9b9');
+    const pt=(w,y,t)=>V3.add(V3.add(h,V3.add(V3.mul(u,w),V3.mul(n,t))),[0,y,0]);
+    hexa(M,[pt(0,-DH+1,-T/2),pt(DW-1,-DH+1,-T/2),pt(DW-1,-DH+1,T/2),pt(0,-DH+1,T/2),pt(0,0,-T/2),pt(DW-1,0,-T/2),pt(DW-1,0,T/2),pt(0,0,T/2)],dc);
+    [-1,1].forEach(sg=>{ const c=pt(DW-7,-50,sg*(T/2+1.2)); pfEll(M,c,u,[0,1,0],n,3,.8,.8,hc,6,8); });
+    quad(M,pt(6,-DH+12,-T/2-.05),pt(DW-7,-DH+12,-T/2-.05),pt(DW-7,-DH+40,-T/2-.05),pt(6,-DH+40,-T/2-.05),[0,0,-1],c4('#d6d1c6'));
+    return {M,MD:null,MS2:null,h:pt(DW-7,-50,-(T/2+1.6)),hIn:pt(DW-7,-50,T/2+1.6)}; };
+  const CK=[[0,[-60,-118,-300],[18,-62,40],42],[T_GO,[-36,-104,-262],[24,-62,46],40],[T_IN0+.3,[-36,-104,-262],[24,-62,46],40],[T_ARR+.2,[2,-84,-160],[6,-68,0],31],[999,[2,-84,-160],[6,-68,0],31]];
+  const camAt=t=>{ let i=0; while(i<CK.length-2&&t>CK[i+1][0]) i++; const a=CK[i], b=CK[i+1], u=sm((t-a[0])/(b[0]-a[0])); return hlCam(mixV(a[1],b[1],u),mixV(a[2],b[2],u),a[3]+(b[3]-a[3])*u,cv.width,cv.height,1); };
+  const room={M:RM,MD:null,MS2:BG}, BAGC=['#1e3a6b','#5a2a2a','#2f4a2f'];
+  const t0=performance.now(); let st=0;
+  const frame=()=>{ if(fin) return; const t=(performance.now()-t0)/1000; wrap.style.setProperty('--fade',Math.min(1,t/.8));
+    if(st===0&&t>=T_BYE){ st=1; mBye.classList.add('on'); }
+    if(st===1&&t>=D_CLOSE){ st=2; mBye.classList.remove('on'); }
+    if(st===2&&t>=T_HI){ st=3; mHi.classList.add('on'); }
+    if(st===3&&hit!=null&&t>=T_V){ st=3.5; mHi.classList.remove('on'); mV.classList.add('on'); }
+    if((st===3||st===3.5)&&t>=T_DONE){ st=4; mHi.classList.remove('on'); mV.classList.remove('on'); tdone.classList.add('on'); wrap.querySelector('.ts-skip').style.display='none'; wrap.onclick=end; }
+    const a=doorA(t), door=doorMesh(a), list=[room,door], q0=PF3D.q; if(N>1) PF3D.q=1;
+    try{
+      shown.forEach((p,i)=>{ const pth=lvPath[i], s=Math.max(0,(t-lvStart[i])*SPD); if(s>=pth.tot) return; const at=pth.at(s), mv=t>lvStart[i]?Math.min(1,(t-lvStart[i])*3):0;
+        let face=[0,0,-1]; if(t>lvStart[i]-.5){ const u=sm((t-lvStart[i]+.5)/.5); face=V3.nrm(mixV([0,0,-1],at.d,u)); }
+        const reach=i===0?{p:door.h,w:sm((t-(D_OPEN-.45))/.3)*(1-sm((t-(D_OPEN+.35))/.3))}:null;
+        list.push(walkK(LV[i],at.p,face,s,mv,BAGC[i%3],reach)); });
+      if(t>=T_IN0){ const s=(t-T_IN0)*SPD, at=inPath.at(s), mv=s<inPath.tot?1:Math.max(0,1-(t-T_ARR)*3);
+        let face=at.d; if(s>=inPath.tot){ const u=sm((t-T_ARR)/.6); face=V3.nrm(mixV(at.d,[0,0,-1],u)); }
+        const reach={p:door.hIn,w:sm((t-(T_IN0-.35))/.25)*(1-sm((t-(T_IN0+.25))/.3))};
+        list.push(walkK(NW,at.p,face,Math.min(s,inPath.tot),mv,null,reach)); }
+      hlGLDraw(S,camAt(t),list);
+    }catch(e){ console.error(e); end(); return; } finally{ PF3D.q=q0; }
+    if(t<T_DONE+2.5) raf=requestAnimationFrame(frame); };
+  raf=requestAnimationFrame(frame);
+}
 /* ============ FA 이적 ============ */
 function isFA(p){ return !!(state&&state.fa&&state.fa[p.i]); }
+/* v211: 검색창이 있는 영역을 다시 그릴 때 입력칸은 그대로 두고 나머지만 바꿈.
+   (입력칸을 새로 만들면 한글 조합 중인 글자가 끊겨 'ㄹㅔㅈㅓㄴ'처럼 들어가는 문제) */
+function qPatch(host,html,id){ const old=host.querySelector('#'+id); if(!old||old.parentNode!==host){ host.innerHTML=html; return; }
+  const tmp=document.createElement('div'); tmp.innerHTML=html; const ni=tmp.querySelector('#'+id); if(!ni||ni.parentNode!==tmp){ host.innerHTML=html; return; }
+  [...host.childNodes].forEach(n=>{ if(n!==old) n.remove(); }); let before=true;
+  [...tmp.childNodes].forEach(n=>{ if(n===ni){ before=false; return; } if(before) host.insertBefore(n,old); else host.appendChild(n); }); }
 /* v207: 시리즈별 FA 비용 (BP, 대가 카드 수). FA 시리즈는 아무 대가 없이 이적 */
 const FA_COST={D:[20000,1],F:[0,0],P:[120000,2],S:[150000,2],N:[170000,2],R:[180000,2],T:[210000,3],G:[240000,3],V:[330000,3],H:[360000,3],K:[480000,4],M:[600000,4],L:[900000,5]};   // v210: v208보다 약 40% 낮춤
 function faCost(p){ const c=FA_COST[p.grade]; if(c) return c[0]; const pk=PACKS.find(k=>k.id===(p.grade==='G'?'GN':p.grade)); return pk?pk.price*10:100000; }
@@ -5046,13 +5187,13 @@ function renderFA(){
   if(FA.i==null||!(state.owned[FA.i]>0)){
     FA.i=null;
     const ql=FA.q.trim();
-    const list=ownedList().map(i=>DB[i]).filter(q=>!ql||(q.name.includes(ql)||nm(q).includes(ql)))
+    const list=ownedList().map(i=>DB[i]).filter(q=>!ql||q.name.includes(ql)||nm(q).includes(ql)||cardMatch(q,ql))
       .sort((a,b)=>RARITY.indexOf(b.grade)-RARITY.indexOf(a.grade)||nm(a).localeCompare(nm(b),'ko'));
-    body.innerHTML=`<div class="pc-lbl fa-step">1. 이적시킬 내 선수 고르기</div>
-      <input class="tsearch" id="faQ" placeholder="선수 이름 검색" value="${FA.q.replace(/"/g,'')}" style="margin-bottom:8px;">
-      <div class="plist" style="max-height:60vh;">${list.length?list.map(q=>faItem(q,false,isFA(q)?' · FA':'')).join(''):'<div class="pitem" style="cursor:default;">보유한 선수가 없어요</div>'}</div>`;
+    qPatch(body,`<div class="pc-lbl fa-step">1. 이적시킬 내 선수 고르기</div>
+      <input class="tsearch" id="faQ" placeholder="이름 · 시리즈 · 구단 · 연도 검색" value="${FA.q.replace(/"/g,'')}" style="margin-bottom:8px;">
+      <div class="plist" style="max-height:60vh;">${list.length?list.map(q=>faItem(q,false,isFA(q)?' · FA':'')).join(''):`<div class="pitem" style="cursor:default;">${ql?'검색 결과가 없어요':'보유한 선수가 없어요'}</div>`}</div>`,'faQ');
     const inp=document.getElementById('faQ');
-    inp.oninput=()=>{ FA.q=inp.value; const pos=inp.selectionStart; renderFA(); const n=document.getElementById('faQ'); n.focus(); n.setSelectionRange(pos,pos); };
+    inp.oninput=()=>{ FA.q=inp.value; renderFA(); };
     body.querySelector('.plist').onclick=e=>{ const it=e.target.closest('.pitem[data-i]'); if(!it)return; FA.i=+it.dataset.i; FA.team=null; FA.pay=[]; renderFA(); };
     return;
   }
