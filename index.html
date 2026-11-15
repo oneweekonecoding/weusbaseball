@@ -180,6 +180,9 @@ gap:12px;align-items:center;border:1px solid var(--line);border-radius:14px;back
   .tile.gemt{border-color:#3a3f8a;background:linear-gradient(160deg,#1c1f4a,#11132c);} .tile.gemt .tn{color:#9fe8ff;}
   .gem-chip{display:flex;align-items:center;gap:5px;background:linear-gradient(180deg,#26285a,#171936);border:1px solid #3a3f8a;border-radius:999px;padding:7px 11px;font-weight:900;font-size:14px;}
   .gem-chip small{color:#9fb8e8;font-weight:700;font-size:10px;}
+  #perfMon{position:fixed;left:6px;top:calc(6px + env(safe-area-inset-top));z-index:999;pointer-events:none;font:11px/1.45 ui-monospace,Menlo,Consolas,monospace;color:#d1fae5;background:rgba(0,0,0,.72);border:1px solid rgba(110,231,183,.5);border-radius:8px;padding:5px 8px;max-width:280px;}
+  #perfMon b{color:#6ee7b7;}
+  .gq-sel{background:#0f1d2e;color:inherit;border:1px solid var(--line);border-radius:10px;padding:6px 8px;font:inherit;font-size:12.5px;}
   .bg-top{display:flex;justify-content:space-between;align-items:center;margin:2px 0 10px;} .bg-sum b{font-family:'Black Han Sans',sans-serif;font-size:26px;color:var(--gold-hi,#ffd873);} .bg-sum span{font-size:12.5px;color:var(--chalk-dim);margin-left:4px;font-weight:700;}
   .bg-tabs{display:flex;gap:6px;overflow-x:auto;padding-bottom:4px;margin-bottom:12px;scrollbar-width:none;} .bg-tabs::-webkit-scrollbar{display:none;}
   .bg-tab{flex:0 0 auto;display:flex;align-items:center;gap:6px;padding:7px 13px;border-radius:99px;border:1px solid var(--line);background:rgba(255,255,255,.04);color:var(--chalk-dim);font:inherit;font-size:13px;font-weight:800;cursor:pointer;}
@@ -3381,6 +3384,10 @@ function go(name){
   try{ applyLand(); }catch(e){}
   screens[name].scrollTop=0;
   if(name==='home')renderHome();
+  if(name==='match'){ if(SC.dirty) try{ scRequest(); }catch(e){} }
+  else { clearTimeout(SC.relT); SC.relT=setTimeout(()=>{ try{ if(screens.match&&screens.match.classList.contains('active')) return; if(G&&!G.over) return;   // 경기를 떠나면 선수 메시 버퍼를 정리 (다시 들어오면 새로 만듦)
+      Object.keys(SC.act).forEach(k=>{ if(SC.act[k]) scFree(SC.act[k]); }); SC.act={}; SC.stat.forEach(scFree); SC.stat=[]; SC.statKey='';
+      gluFreeAll(PF3D); gluFreeAll(BT3D); cancelAnimationFrame(BT.raf); BT.raf=0; }catch(e){} },1500); }
   if(name!=='match') document.body.classList.remove('spec');
   if(name==='friend'){ frRender(); frStart().then(()=>frRefresh()); }
   if(name==='scout')renderScout();
@@ -5966,7 +5973,7 @@ function pcViolation(){ pcStop(); stopMeter(); if(!G||G.over) return; G.pcV=(G.p
 const INL={until:0,ready:0,last:0,phase:null};
 function inLock(ms){ INL.until=Math.max(INL.until,performance.now()+ms); if(ms>=5000) INL.until=performance.now()+ms; }
 function inReady(){ INL.ready=performance.now(); }
-(function inWatch(){ try{ const ph=G&&G.phase; if(ph!==INL.phase){ INL.phase=ph; INL.ready=performance.now(); } }catch(e){} requestAnimationFrame(inWatch); })();   // 상태가 바뀐 첫 화면부터 입력을 받음
+setInterval(()=>{ try{ const ph=G&&!G.over?G.phase:null; if(ph!==INL.phase){ INL.phase=ph; INL.ready=performance.now(); } }catch(e){} },40);   // 상태가 바뀐 뒤부터 입력을 받음 (v204: 매 프레임 돌던 RAF 대신 40ms 확인, 경기 밖에서는 할 일 없음)
 const IN_SEL='#btnPitch,#btnSwing,#btnSteal,#btnPickoff,#pitchTypes,#zonePick,#chasePick,#fhSwing,#fhThrow,#fhSteal,#fhPick,#fhAim,.fh-types,.fh-aim,.fh-zone,.fh-pt,#fieldView,#pitchControls,#batControls';
 function inBlock(e){ if(!G||G.over||G.pvpWatch) return false; const t=e.target&&e.target.closest&&e.target.closest(IN_SEL); if(!t) return false;
   if(t.closest('#fhMenu,.fh-menu,#fhFS,#fhView,.fh-view,#btnQuit')) return false;
@@ -7121,6 +7128,37 @@ function faceOf(P,fm){ const nm=P.name||'', r=n=>hash01(nm+'|face',n), f=FACE[nm
    - 유니폼 글자(가슴 팀 이름, 등 번호)는 텍스처, 바지 옆줄과 단추 줄은 색
    화면 투영은 2D와 같은 식이라 릴리스 지점과 공 궤적이 그대로 맞음. WebGL이 안 되면 자동으로 2D. */
 const PF3D={on:true,gl:null,cv:null,fail:false,q:2};
+/* ============ 그래픽 품질 (v204): 성능 우선 / 균형 / 고품질 + 자동 ============
+   바뀌는 것은 해상도(DPR), 선수 메시 매끄럽게 나누기(PF3D.q), 타자 대기 동작 프레임 간격뿐. 선수 위치·애니메이션 시간·판정은 그대로 */
+const GQ_SET={perf:{dpr:1,q:1,idle:50,t:'성능 우선'},bal:{dpr:1.5,q:2,idle:30,t:'균형'},high:{dpr:2,q:2,idle:30,t:'고품질'}};
+const GQ={mode:(()=>{ try{ return localStorage.getItem('weus_gq')||'auto'; }catch(e){ return 'auto'; } })(),lvl:'bal',win:[],good:0,last:0,lastT:0};
+(function gqGuess(){ try{ const c=navigator.hardwareConcurrency||4, m=navigator.deviceMemory||4, d=window.devicePixelRatio||1, sm=Math.min(screen.width,screen.height)<=820;
+  GQ.lvl=(c<=4||m<=2)?'perf':(sm&&d>=2.5)?'bal':(c>=8&&m>=8&&!sm)?'high':'bal'; }catch(e){} })();   // 처음 값: 코어 수·메모리·화면으로 짐작
+function gqLvl(){ return GQ.mode==='auto'?GQ.lvl:(GQ_SET[GQ.mode]?GQ.mode:'bal'); }
+function gqDpr(cap){ return Math.min(cap||2,window.devicePixelRatio||1,GQ_SET[gqLvl()].dpr); }
+function gqApply(){ const Q=GQ_SET[gqLvl()]; PF3D.q=Q.q; PF3D.nf=0; PF3D.ms=null; SC.key=''; try{ if(screens.match&&screens.match.classList.contains('active')){ scSync(); scRequest(); } }catch(e){} }
+function gqSet(mode){ GQ.mode=mode; try{ localStorage.setItem('weus_gq',mode); }catch(e){} GQ.win=[]; GQ.good=0; gqApply(); }
+/* 자동: 실제로 그림을 그린 프레임 사이 시간만 모아 3초마다 판단. 느리면 한 단계 내리고, 여유가 6초 이어지면 한 단계 올림 */
+function gqTick(){ const now=performance.now(), dt=now-GQ.lastT; GQ.lastT=now; if(dt>4&&dt<150){ GQ.win.push(dt); PERF.ft.push(dt); if(PERF.ft.length>120) PERF.ft.shift(); }
+  if(GQ.mode!=='auto'||now-GQ.last<3000||GQ.win.length<40) return; GQ.last=now; const w=GQ.win.slice().sort((a,b)=>a-b), avg=w.reduce((t,x)=>t+x,0)/w.length, p90=w[Math.floor(w.length*.9)]; GQ.win=[];
+  const ord=['perf','bal','high'], i=ord.indexOf(GQ.lvl);
+  if(avg>30&&i>0){ GQ.lvl=ord[i-1]; GQ.good=0; gqApply(); }
+  else if(avg<18&&p90<24&&i<2){ if(++GQ.good>=2){ GQ.lvl=ord[i+1]; GQ.good=0; gqApply(); } } else GQ.good=0; }
+/* ============ 성능 모니터 (개발자용, 설정에서 켬) ============ */
+const PERF={on:(()=>{ try{ return localStorage.getItem('weus_perf')==='1'||/[?&]perf=1/.test(location.search); }catch(e){ return false; } })(),rend:0,up:0,ft:[],raf:new Set(),el:null,tm:0,c0:null};
+(function perfHook(){ try{ const P=WebGLRenderingContext.prototype; PERF.bd=0; PERF.bytes=0;
+    const bd=P.bufferData; P.bufferData=function(t,d){ PERF.bd++; if(d&&d.byteLength) PERF.bytes+=d.byteLength; else if(typeof d==='number') PERF.bytes+=0; return bd.apply(this,arguments); };
+    const bs=P.bufferSubData; P.bufferSubData=function(t,o,d){ PERF.bd++; if(d&&d.byteLength) PERF.bytes+=d.byteLength; return bs.apply(this,arguments); };
+    const R=window.requestAnimationFrame.bind(window), X=window.cancelAnimationFrame.bind(window);
+    window.requestAnimationFrame=function(cb){ let id=0; id=R(t=>{ PERF.raf.delete(id); cb(t); }); PERF.raf.add(id); return id; };
+    window.cancelAnimationFrame=function(id){ PERF.raf.delete(id); return X(id); }; }catch(e){} })();
+function perfShow(on){ PERF.on=on; try{ localStorage.setItem('weus_perf',on?'1':'0'); }catch(e){} clearInterval(PERF.tm); if(PERF.el){ PERF.el.remove(); PERF.el=null; } if(!on) return;
+  const el=PERF.el=document.createElement('div'); el.id='perfMon'; document.body.appendChild(el); PERF.c0={rend:PERF.rend,up:PERF.up,bd:PERF.bd,bytes:PERF.bytes,t:performance.now()};
+  PERF.tm=setInterval(()=>{ const now=performance.now(), s=(now-PERF.c0.t)/1000||1, f=PERF.ft.length?PERF.ft.reduce((a,b)=>a+b,0)/PERF.ft.length:0, mx=PERF.ft.length?Math.max(...PERF.ft):0;
+    const cvN=[...document.querySelectorAll('canvas')].filter(c=>c.offsetParent!==null&&c.width>0).length, mem=performance.memory?(performance.memory.usedJSHeapSize/1048576).toFixed(0)+'MB':'측정 불가';
+    const anim=[BT.raf?'타자':'',HL.busy?'하이라이트':'',FP.busy?'수비':'',typeof PF!=='undefined'&&PF.busy?'투구':'',SC.raf?'경기장':''].filter(Boolean);
+    el.innerHTML=`<b>PERF</b> ${gqLvl()==='perf'?'성능':gqLvl()==='high'?'고품질':'균형'}${GQ.mode==='auto'?'(자동)':''} · DPR ${gqDpr().toFixed(2)}<br>FPS ${f?(1000/f).toFixed(0):'-'} · 프레임 ${f?f.toFixed(1):'-'}ms (최대 ${mx.toFixed(0)})<br>렌더 ${((PERF.rend-PERF.c0.rend)/s).toFixed(1)}/s · 메시 업로드 ${((PERF.up-PERF.c0.up)/s).toFixed(1)}/s<br>GPU 버퍼 호출 ${((PERF.bd-PERF.c0.bd)/s).toFixed(1)}/s · ${((PERF.bytes-PERF.c0.bytes)/s/1024).toFixed(0)}KB/s<br>캔버스 ${cvN} · 대기 RAF ${PERF.raf.size} · 애니 ${anim.length?anim.join(','):'없음'}<br>JS 메모리 ${mem}`;
+    if(now-PERF.c0.t>2000){ PERF.c0={rend:PERF.rend,up:PERF.up,bd:PERF.bd,bytes:PERF.bytes,t:now}; } if(!GQ.lastT||now-GQ.lastT>500) PERF.ft=[]; },500); }
 try{ if(LS.get('weus_3d')==='0') PF3D.on=false; }catch(e){}
 function hex3(h){ const n=parseInt(String(h||'#888').slice(1),16); return [(n>>16&255)/255,(n>>8&255)/255,(n&255)/255]; }
 const GL3D_VS=`attribute vec3 aP; attribute vec3 aN; attribute vec4 aC; attribute vec2 aUV;
@@ -7151,6 +7189,30 @@ void main(){
   c+=uGlow*(0.28+rim*3.2);
   gl_FragColor=vec4(c*base.a,base.a);
 }`;
+/* ============ GPU 업로드 공용 (v204) ============
+   메시 한 개 = 버퍼 3개: 위치·법선(매 프레임 바뀜) / 색·UV(대부분 그대로) / 인덱스(자세가 바뀌어도 그대로).
+   - 색·UV와 인덱스는 지난번과 같으면 올리지 않음
+   - 버퍼는 한 번 만든 크기를 다시 씀(bufferSubData), 모자랄 때만 25% 넉넉하게 새로 잡음
+   - Float32Array는 매번 새로 만들지 않고 공용 작업 배열을 씀 */
+const GLU={a:new Float32Array(6*4096),b:new Float32Array(6*4096)};
+function gluSlot(gl){ return {pn:gl.createBuffer(),cu:gl.createBuffer(),ib:gl.createBuffer(),capPN:0,capCU:0,capIB:0,cu0:null,ib0:null,big:false,n:0,type:gl.UNSIGNED_SHORT}; }
+function gluFree(gl,p){ if(!p||!gl) return; [p.pn,p.cu,p.ib].forEach(b=>{ try{ gl.deleteBuffer(b); }catch(e){} }); }
+function gluPut(gl,tgt,buf,data,ck,p){ gl.bindBuffer(tgt,buf); if(p[ck]>=data.byteLength) gl.bufferSubData(tgt,0,data); else { const cap=Math.ceil(data.byteLength*1.25/4)*4; gl.bufferData(tgt,cap,gl.DYNAMIC_DRAW); gl.bufferSubData(tgt,0,data); p[ck]=cap; } }
+function gluUpload(gl,p,Mx,u32){ const n=Mx.n, v=Mx.v, L=n*6; if(GLU.a.length<L){ GLU.a=new Float32Array(Math.ceil(L*1.5)); GLU.b=new Float32Array(Math.ceil(L*1.5)); }
+  const a=GLU.a, b=GLU.b; for(let i=0,j=0,k=0;i<n;i++,j+=12,k+=6){ a[k]=v[j]; a[k+1]=v[j+1]; a[k+2]=v[j+2]; a[k+3]=v[j+3]; a[k+4]=v[j+4]; a[k+5]=v[j+5]; b[k]=v[j+6]; b[k+1]=v[j+7]; b[k+2]=v[j+8]; b[k+3]=v[j+9]; b[k+4]=v[j+10]; b[k+5]=v[j+11]; }
+  gluPut(gl,gl.ARRAY_BUFFER,p.pn,a.subarray(0,L),'capPN',p);
+  let same=!!(p.cu0&&p.cu0.length===L); if(same){ const c=p.cu0; for(let k=0;k<L;k++) if(c[k]!==b[k]){ same=false; break; } }
+  if(!same){ gluPut(gl,gl.ARRAY_BUFFER,p.cu,b.subarray(0,L),'capCU',p); p.cu0=b.slice(0,L); }
+  const I=Mx.i, m=I.length, big=n>65535&&!!u32; let sameI=!!(p.ib0&&p.ib0.length===m&&p.big===big); if(sameI){ const c=p.ib0; for(let k=0;k<m;k++) if(c[k]!==I[k]){ sameI=false; break; } }
+  if(!sameI){ const T=big?new Uint32Array(I):new Uint16Array(I); gluPut(gl,gl.ELEMENT_ARRAY_BUFFER,p.ib,T,'capIB',p); p.ib0=T; p.big=big; }
+  p.n=m; p.type=big?gl.UNSIGNED_INT:gl.UNSIGNED_SHORT; PERF.up++; return p; }
+function gluDraw(gl,AT,p){ if(!p||!p.n) return;
+  gl.bindBuffer(gl.ARRAY_BUFFER,p.pn); gl.enableVertexAttribArray(AT.P); gl.vertexAttribPointer(AT.P,3,gl.FLOAT,false,24,0); gl.enableVertexAttribArray(AT.N); gl.vertexAttribPointer(AT.N,3,gl.FLOAT,false,24,12);
+  gl.bindBuffer(gl.ARRAY_BUFFER,p.cu); gl.enableVertexAttribArray(AT.C); gl.vertexAttribPointer(AT.C,4,gl.FLOAT,false,24,0); gl.enableVertexAttribArray(AT.UV); gl.vertexAttribPointer(AT.UV,2,gl.FLOAT,false,24,16);
+  gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER,p.ib); gl.drawElements(gl.TRIANGLES,p.n,p.type,0); }
+/* 캔버스별 메시 자리: 같은 자리에 같은 모양이 오면 위치만 다시 올림 */
+function gluMesh(S,key,Mx){ const gl=S.gl; if(!Mx||!Mx.i.length) return null; S.gs=S.gs||{}; const p=S.gs[key]||(S.gs[key]=gluSlot(gl)); return gluUpload(gl,p,Mx,S.u32); }
+function gluFreeAll(S){ if(!S||!S.gs||!S.gl) { if(S) S.gs={}; return; } Object.values(S.gs).forEach(p=>gluFree(S.gl,p)); S.gs={}; }
 function gl3dSetup(S,cv){   // 캔버스 하나에 WebGL 프로그램·버퍼·텍스처 준비 (투수, 타자가 각각 씀)
   let gl=null; try{ gl=cv.getContext('webgl',{antialias:true,alpha:true,premultipliedAlpha:true})||cv.getContext('experimental-webgl'); }catch(e){}
   if(!gl) return null;
@@ -7164,19 +7226,12 @@ function gl3dSetup(S,cv){   // 캔버스 하나에 WebGL 프로그램·버퍼·�
     S.u32=!!gl.getExtension('OES_element_index_uint');
     S.vb=gl.createBuffer(); S.ib=gl.createBuffer(); S.tex=gl.createTexture();
     S.gl=gl; S.cv=cv; S.U=U; S.A=A;
-    cv.addEventListener('webglcontextlost',e=>{ e.preventDefault(); S.fail=true; S.gl=null; try{ cv.remove(); }catch(_){} },false);
+    cv.addEventListener('webglcontextlost',e=>{ e.preventDefault(); S.fail=true; S.gl=null; S.gs={}; try{ cv.remove(); }catch(_){} S.lost=(S.lost||0)+1; if(S.lost<=3) setTimeout(()=>{ S.fail=false; S.cv=null; S.texKey=null; },1500); },false);   // v204: 1.5초 뒤 새 캔버스로 다시 시도 (최대 3번)
     return gl;
   }catch(e){ return null; } }
 /* 메시 3개(그림자, 몸, 글자)를 그린다. cam={bx,by,s,mir,CX,CY,D} */
-function gl3dDraw(S,W,H,cam,M,MD,MS2,keep){ const gl=S.gl, U=S.U, AT=S.A, cv=S.cv;
-  const upload=Mx=>{ if(!Mx||!Mx.i.length) return; const vb=new Float32Array(Mx.v), ib=(Mx.n>65535&&S.u32)?new Uint32Array(Mx.i):new Uint16Array(Mx.i);
-    gl.bindBuffer(gl.ARRAY_BUFFER,S.vb); gl.bufferData(gl.ARRAY_BUFFER,vb,gl.STREAM_DRAW);
-    gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER,S.ib); gl.bufferData(gl.ELEMENT_ARRAY_BUFFER,ib,gl.STREAM_DRAW);
-    const st=48; gl.enableVertexAttribArray(AT.P); gl.vertexAttribPointer(AT.P,3,gl.FLOAT,false,st,0);
-    gl.enableVertexAttribArray(AT.N); gl.vertexAttribPointer(AT.N,3,gl.FLOAT,false,st,12);
-    gl.enableVertexAttribArray(AT.C); gl.vertexAttribPointer(AT.C,4,gl.FLOAT,false,st,24);
-    gl.enableVertexAttribArray(AT.UV); gl.vertexAttribPointer(AT.UV,2,gl.FLOAT,false,st,40);
-    gl.drawElements(gl.TRIANGLES,Mx.i.length,ib instanceof Uint32Array?gl.UNSIGNED_INT:gl.UNSIGNED_SHORT,0); };
+function gl3dDraw(S,W,H,cam,M,MD,MS2,keep){ const gl=S.gl, U=S.U, AT=S.A, cv=S.cv; PERF.rend++; gqTick();
+  S._kc=keep?(S._kc||0)+1:0; const pre='c'+S._kc; const upload=Mx=>{ if(!Mx||!Mx.i.length) return; const k=Mx===MS2?'s':Mx===M?'m':'d'; gluDraw(gl,AT,gluMesh(S,pre+k,Mx)); };   // 같은 프레임에 여러 번 그리면(keep) 자리를 나눔
   gl.viewport(0,0,cv.width,cv.height); if(!keep){ gl.clearColor(0,0,0,0); gl.clearDepth(1); gl.clear(gl.COLOR_BUFFER_BIT|gl.DEPTH_BUFFER_BIT); }
   gl.uniform4f(U.uCam,cam.bx,cam.by,cam.s,cam.mir); gl.uniform4f(U.uCam2,cam.CX,cam.CY,cam.D,0); gl.uniform2f(U.uView,W,H); gl.uniform1f(U.uMir,cam.mir);
   gl.enable(gl.BLEND); gl.blendFunc(gl.ONE,gl.ONE_MINUS_SRC_ALPHA);
@@ -7204,23 +7259,30 @@ function pfSubRings(rings,n){ const R=rings.length, out=[], idx=[];
       const c=[0,1,2].map(j=>lin[j]+(cc[j]-lin[j])*.85);
       out.push({c,x:V3.nrm(V3.add(V3.mul(B.x,1-u),V3.mul(C.x,u))),y:V3.nrm(V3.add(V3.mul(B.y,1-u),V3.mul(C.y,u))),rx:rad('rx'),ryF:rad('ryF'),ryB:rad('ryB'),u:B.u!=null&&C.u!=null?B.u+(C.u-B.u)*u:B.u}); idx.push(i+u); } }
   out.push(rings[R-1]); idx.push(R-1); return {rings:out,idx}; }
+const PFL={P:new Float64Array(3072),cs:new Float64Array(64),sn:new Float64Array(64)};   // pfLoft 작업 공간 (재사용)
 function pfLoft(M,rings0,opt){
   const QL=PF3D.q||1, subN=(QL>1&&rings0.length>=3&&!opt.noSub)?Math.round(QL):1, SB=subN>1?pfSubRings(rings0,subN):null, rings=SB?SB.rings:rings0, R0=rings0.length;
   const oi=i=>SB?SB.idx[i]:i, oc=opt.col, ouv=opt.uv;
   if(SB){ opt=Object.assign({},opt,{col:(i,u,cs,sn)=>{ const fi=oi(i), ni=Math.min(R0-1,Math.round(fi)); return oc(ni,R0>1?fi/(R0-1):0,cs,sn); }}); if(ouv) opt.uv=(i,ss)=>ouv(oi(i),ss); }
   const S=Math.max(2,Math.round((opt.segs||16)*(opt.segs<=2?1:(QL>1?1.8:1))*(PF3D.lod&&opt.segs>6?PF3D.lod:1))), part=opt.t0!=null, t0=part?opt.t0:0, t1=part?opt.t1:Math.PI*2, nS=part?S+1:S, off=opt.off||0, R=rings.length;
-  const P=[], CEN=[];
-  for(let i=0;i<R;i++){ const g=rings[i], row=[];
-    for(let j=0;j<nS;j++){ const th=t0+(t1-t0)*j/(part?S:S), cs=Math.cos(th), sn=Math.sin(th), ry=sn>=0?g.ryF:g.ryB;
-      row.push([g.c[0]+g.x[0]*cs*(g.rx+off)+g.y[0]*sn*(ry+off), g.c[1]+g.x[1]*cs*(g.rx+off)+g.y[1]*sn*(ry+off), g.c[2]+g.x[2]*cs*(g.rx+off)+g.y[2]*sn*(ry+off)]); }
-    P.push(row); CEN.push(g.c); }
-  const base=M.n;
-  for(let i=0;i<R;i++) for(let j=0;j<nS;j++){
-    const ip=Math.min(R-1,i+1), im=Math.max(0,i-1), jp=part?Math.min(nS-1,j+1):(j+1)%nS, jm=part?Math.max(0,j-1):(j-1+nS)%nS;
-    const du=V3.sub(P[ip][j],P[im][j]), dv=V3.sub(P[i][jp],P[i][jm]); let nm=V3.cross(du,dv);
-    const out=V3.sub(P[i][j],CEN[i]); if(V3.len(nm)<1e-6) nm=out; nm=V3.nrm(nm); if(V3.dot(nm,out)<0) nm=V3.mul(nm,-1);
-    const th=t0+(t1-t0)*j/(part?S:S);
-    M.vert(P[i][j],nm,opt.col(i,R>1?i/(R-1):0,Math.cos(th),Math.sin(th)),opt.uv?opt.uv(i,part?j/S:j/S):null); }
+  /* v206: 꼭짓점마다 배열을 만들지 않고 미리 잡아 둔 Float64Array에 바로 계산 (같은 식, 같은 순서라 결과 메시는 그대로) */
+  const NV=R*nS; if(PFL.P.length<NV*3) PFL.P=new Float64Array(NV*3*2); if(PFL.cs.length<nS){ PFL.cs=new Float64Array(nS*2); PFL.sn=new Float64Array(nS*2); }
+  const P=PFL.P, CS=PFL.cs, SN=PFL.sn;
+  for(let j=0;j<nS;j++){ const th=t0+(t1-t0)*j/S; CS[j]=Math.cos(th); SN[j]=Math.sin(th); }
+  for(let i=0;i<R;i++){ const g=rings[i], c=g.c, x=g.x, y=g.y, rxo=g.rx+off, rfo=g.ryF+off, rbo=g.ryB+off;
+    for(let j=0;j<nS;j++){ const cs=CS[j], sn=SN[j], ry=sn>=0?rfo:rbo, o=(i*nS+j)*3;
+      P[o]=c[0]+x[0]*cs*rxo+y[0]*sn*ry; P[o+1]=c[1]+x[1]*cs*rxo+y[1]*sn*ry; P[o+2]=c[2]+x[2]*cs*rxo+y[2]*sn*ry; } }
+  const base=M.n, V=M.v;
+  for(let i=0;i<R;i++){ const ip=Math.min(R-1,i+1), im=Math.max(0,i-1), c=rings[i].c, u=R>1?i/(R-1):0;
+    for(let j=0;j<nS;j++){
+      const jp=part?Math.min(nS-1,j+1):(j+1)%nS, jm=part?Math.max(0,j-1):(j-1+nS)%nS, o=(i*nS+j)*3, a1=(ip*nS+j)*3, a0=(im*nS+j)*3, b1=(i*nS+jp)*3, b0=(i*nS+jm)*3;
+      const ux=P[a1]-P[a0], uy=P[a1+1]-P[a0+1], uz=P[a1+2]-P[a0+2], vx=P[b1]-P[b0], vy=P[b1+1]-P[b0+1], vz=P[b1+2]-P[b0+2];
+      let nx=uy*vz-uz*vy, ny=uz*vx-ux*vz, nz=ux*vy-uy*vx;
+      const px=P[o], py=P[o+1], pz=P[o+2], ox=px-c[0], oy=py-c[1], oz=pz-c[2];
+      let l=Math.sqrt(nx*nx+ny*ny+nz*nz); if(l<1e-6){ nx=ox; ny=oy; nz=oz; l=Math.sqrt(nx*nx+ny*ny+nz*nz); } l=l||1; nx/=l; ny/=l; nz/=l;
+      if(nx*ox+ny*oy+nz*oz<0){ nx=-nx; ny=-ny; nz=-nz; }
+      const cl=opt.col(i,u,CS[j],SN[j]), uv=opt.uv?opt.uv(i,j/S):null;
+      V.push(px,py,pz,nx,ny,nz,cl[0],cl[1],cl[2],cl[3]==null?1:cl[3],uv?uv[0]:0,uv?uv[1]:0); M.n++; } }
   for(let i=0;i<R-1;i++) for(let j=0;j<(part?nS-1:nS);j++){ const a=base+i*nS+j, b=base+i*nS+(part?j+1:(j+1)%nS), c=a+nS, d=b+nS; M.i.push(a,c,b,b,c,d); }
 }
 /* 타원체 */
@@ -7238,6 +7300,7 @@ function pfLimb(M,A,B,xHint,prof,col,segs,yHint,ex){ const d=V3.sub(B,A), L=V3.l
   pfLoft(M,rings,Object.assign({segs:segs||16,col:(i,_u,cs,sn)=>col(rings[i].u,cs,sn)},ex||{})); }
 /* 등 번호 / 가슴 팀 이름 / 모자 글자 텍스처 (512x256) */
 function pf3dTexture(gl,word,num,capL,trim,edge,S){ S=S||PF3D;
+  const tk=[word,num,capL,trim,edge].join('|'); if(S._tk===tk&&S._tkT===S.tex&&S.tex) return; S._tk=tk; S._tkT=S.tex;   // v206: 같은 선수·같은 팀 글자면 캔버스를 다시 그리거나 GPU에 다시 올리지 않음
   const c=document.createElement('canvas'); c.width=512; c.height=256; const x=c.getContext('2d');
   x.clearRect(0,0,512,256); x.textAlign='center'; x.textBaseline='middle'; x.lineJoin='round';
   const txt=(t,cx,cy,size,maxW,italic)=>{ x.font=`${italic?'italic ':''}900 ${size}px "Arial Black",Arial,sans-serif`; let w=x.measureText(t).width, k=w>maxW?maxW/w:1;
@@ -7269,16 +7332,22 @@ function pfBodyMesh(k,t,X){ const {C,FC,LW,MS,bl,fm,flipU}=X;
   const fs=(!X.bat&&t>.64&&t<.76)?1-(t-.64)/.12:0; if(fs>0) disc(k.footF,8+16*(1-fs),5+7*(1-fs),fs*.5,[0.8,0.64,0.45]);
   /* ---- 다리: 허벅지(바지, 옆줄) -> 무릎 -> 정강이(바지 끝 주름, 양말, 종아리) -> 신발 ---- */
   const toeB=V3.nrm([k.cH[0]*.6-k.rH[0]*.5,0,k.cH[2]*.6-k.rH[2]*.5]), toeF=V3.nrm([k.cH[0],0,k.cH[2]]);
+  /* 주름 음영 (v205): 메시를 늘리지 않고 꼭짓점 색만 조금 어둡게. 무릎·팔꿈치가 굽을수록 뒤쪽 주름이 진해짐 */
+  const shd=(c,f)=>f>=.999?c:[c[0]*f,c[1]*f,c[2]*f,c[3]==null?1:c[3]];
+  const bendOf=(a,b,c)=>{ const u=V3.nrm(V3.sub(b,a)), v=V3.nrm(V3.sub(c,b)); return Math.max(0,Math.min(1,(1-V3.dot(u,v))*1.4)); };
+  const drape=(cs,sn,u,k2)=>1-(k2||.045)*(.5+.5*Math.cos(Math.atan2(sn,cs)*3+u*5));   // 천이 늘어지는 세로 주름
   const leg=(hip,knee,foot,toe,outSide)=>{
-    const ank=V3.add(foot,[0,-3.0,0]), sideV=V3.mul(rH,outSide);
+    const ank=V3.add(foot,[0,-3.0,0]), sideV=V3.mul(rH,outSide), kb=bendOf(hip,knee,ank);
     pfLimb(M,hip,knee,sideV,[[-.12,3.0*LW,3.2*LW],[-.05,4.4*LW,4.6*LW],[0,5.0*LW,5.2*LW,5.6*LW],[.22,5.3*LW,5.4*LW,5.6*LW],[.5,4.8*LW,4.9*LW,4.6*LW],[.8,4.0*LW,4.1*LW,3.9*LW],[1,3.7*LW,3.8*LW,3.5*LW],[1.08,3.3*LW,3.6*LW,3.0*LW]],
-      ()=>C.p,18,cH);
+      (uu,cs,sn)=>shd(C.p,drape(cs,sn,uu)*(1-kb*.22*Math.exp(-Math.pow((uu-.97)/.12,2))*Math.max(0,-sn)*(.65+.35*Math.cos(uu*70)))),18,cH);   // 허벅지: 늘어진 주름 + 무릎 뒤 접힘
     pfLimb(M,hip,knee,sideV,[[-.02,4.6*LW,4.8*LW],[0,5.0*LW,5.2*LW],[.22,5.3*LW,5.4*LW],[.5,4.8*LW,4.9*LW],[.8,4.0*LW,4.1*LW],[1,3.7*LW,3.8*LW]],()=>C.t,2,cH,{t0:-.075,t1:.075,off:.05});   // 바지 옆줄
           const pantEnd=fm.socks?.2:.9;
     pfLimb(M,knee,ank,sideV,[[-.1,3.3*LW,3.5*LW,3.1*LW],[0,3.7*LW,3.9*LW,3.5*LW],[.12,3.95*LW,4.0*LW,4.1*LW],[pantEnd-.03,4.1*LW,3.95*LW,4.3*LW],[pantEnd-.004,3.9*LW,3.7*LW,4.1*LW],[pantEnd+.004,3.45*LW,3.25*LW,3.8*LW],
       [Math.max(pantEnd+.05,.36),3.4*LW,3.1*LW,4.2*LW],[.62,2.8*LW,2.6*LW,3.0*LW],[.85,2.3*LW,2.2*LW,2.3*LW],[.925,2.2*LW],[.94,2.2*LW],[1,2.2*LW,2.2*LW,2.3*LW],[1.06,1.8*LW]].filter((q,ix,a)=>ix===0||q[0]>a[ix-1][0]),
-      (uu)=>uu<pantEnd?C.p:(uu>.93?C.sock2:C.s),18,toe);
+      (uu,cs,sn)=>uu<pantEnd?shd(C.p,drape(cs,sn,uu,.035)*(1-kb*.2*Math.exp(-Math.pow(uu/.14,2))*Math.max(0,-sn))*(1-.07*Math.max(0,1-Math.abs(uu-pantEnd+.06)/.06))):(uu>.93?C.sock2:C.s),18,toe);   // 정강이: 무릎 뒤 접힘 + 바지 끝단 주름
     pfLimb(M,knee,ank,sideV,[[0,3.8*LW,4.1*LW,3.6*LW],[.12,4.1*LW,4.1*LW,4.3*LW],[pantEnd-.03,4.2*LW,4.0*LW,4.4*LW]],()=>C.t,2,toe,{t0:-.075,t1:.075,off:.05});
+    { const sa=V3.nrm(V3.sub(ank,knee)), ta=V3.nrm(V3.sub(knee,hip)), wb=V3.sub(ta,sa), kf=orth(V3.len(wb)>.15?V3.add(wb,V3.mul(toe,.35)):toe,sa);   // v206 무릎뼈: 굽은 무릎 앞쪽으로 둥글게 솟음 (바지 천)
+      pfEll(M,V3.add(V3.add(knee,V3.mul(kf,2.55*LW)),V3.mul(sa,.4)),sideV,sa,kf,2.3*LW,2.7*LW,1.55*LW,shd(C.p,.97),6,12); }
     // 신발 (뒤꿈치 -> 발끝, 밑창 흰색, 옆 로고)
     const side=V3.nrm(V3.cross([0,-1,0],toe)), base=V3.add([foot[0],0,foot[2]],V3.mul(toe,-1.8)), Lf=10.5;
     const sp=[[-.04,1.2,1.4],[0,2.3,2.9],[.18,2.6,3.3],[.42,2.7,2.7],[.68,2.6,2.1],[.86,2.2,1.6],[.97,1.4,1.15],[1.02,.5,.6]];
@@ -7302,7 +7371,11 @@ function pfBodyMesh(k,t,X){ const {C,FC,LW,MS,bl,fm,flipU}=X;
   const tRings=TU.map(uu=>torsoRing(uu,TPu(uu)));
   pfLoft(M,tRings,{segs:28,col:(i,_u,cs,sn)=>{ const uu=tRings[i].u;
     if(uu<BELT0) return C.p; if(uu<BELT1) return (sn>.97&&uu>BELT0+.008&&uu<BELT1-.008)?C.buckle:C.belt;
-    if(uu>.99) return C.j; return C.j; }});
+    if(uu>.99) return C.j; const th=Math.atan2(sn,cs), side=Math.abs(cs);
+    let f=1-.07*Math.max(0,side-.35)*Math.exp(-Math.pow((uu-.3)/.07,2))*(.6+.4*Math.cos(uu*140));   // 벨트 위 옆구리: 셔츠가 바지 속에 들어가며 생기는 가로 주름
+    f*=1-.05*Math.max(0,side-.6)*Math.exp(-Math.pow((uu-.74)/.08,2));                             // 겨드랑이 아래 그늘
+    f*=1-.03*(.5+.5*Math.cos(th*5+uu*9))*Math.exp(-Math.pow((uu-.5)/.2,2));                       // 몸통 세로 주름
+    return shd(C.j,f); }});
   // 등 번호, 가슴 팀 이름 (몸통 겉면을 따라 휘어진 텍스처 조각)
   const patch=(u0,u1,thC,thW,uv0,uv1,nr)=>{ const rings=[]; nr=nr||6; for(let i=0;i<=nr;i++){ const uu=lerp(u0,u1,i/nr); rings.push(torsoRing(uu,TPu(uu))); }
     pfLoft(MD,rings,{segs:12,t0:thC-thW,t1:thC+thW,off:.14,col:()=>[1,1,1,1],uv:(i,ss)=>[lerp(uv0[0],uv1[0],flipU(ss)),lerp(uv1[1],uv0[1],i/nr)]}); };
@@ -7324,6 +7397,8 @@ function pfBodyMesh(k,t,X){ const {C,FC,LW,MS,bl,fm,flipU}=X;
   [-1,1].forEach(sg=>{ pfEll(M,at(sg*hw*.96,-.6,-.4),hf,up,side,1.0,1.65,.7,C.skin2,6,10);                           // 귀
     pfEll(M,at(sg*eX,.15,4.62),side,up,hf,1.0*eS,.55*eS,.32,C.eyeW,5,10); pfEll(M,at(sg*eX,.15,4.86),side,up,hf,.45*eS,.47*eS,.16,C.eye,5,8);   // 눈
     pfEll(M,at(sg*eX*1.02,1.3+.1*FC.brow,4.75),side,up,hf,1.35,.22+.2*FC.brow,.4,C.hair,4,8); });                  // 눈썹 (굵기 다름)
+  [-1,1].forEach(sg=>pfEll(M,at(sg*hw*.6,-.75,3.95),side,up,hf,1.7,1.05,.95,C.skin,6,10));                            // v206 광대: 눈 아래 볼록한 면
+  pfEll(M,at(0,-5.3+.25*(1-FC.chin),2.3+chinF*.75),side,up,hf,1.6+FC.jaw*.5,1.0,1.05,(FC.beard==='full'||FC.beard==='goatee')?C.hair:FC.beard==='stubble'?C.stub:C.skin,6,10);                  // v206 턱끝: 선수마다 턱 모양에 맞춰 둥글게
   pfEll(M,at(0,-1.2,5.25),side,up,hf,.75*FC.nose,1.3*FC.nose,.95*FC.nose,C.skin2,6,10);                             // 코
   pfEll(M,at(0,-3.55,FC.beard==='full'?4.95:4.55),side,up,hf,1.55*FC.lip,.32,.42,C.lip,4,10);                                              // 입
   // 수염
@@ -7370,11 +7445,13 @@ function pfBodyMesh(k,t,X){ const {C,FC,LW,MS,bl,fm,flipU}=X;
     const sideA=orth(V3.cross(ax,up),V3.nrm(ax));
     const aL=V3.len(ax)||1, an=V3.mul(ax,1/aL), sideB=V3.cross(an,sideA), q=v=>v/aL;   /* 어깨: 팔 원통 끝을 둥글게 닫고(납작한 뚜껑 없음) 삼각근 + 승모근으로 몸통에 이어 붙임 */
     pfLimb(M,a.sh,a.el,sideA,[[-q(3.6),.5*LW],[-q(3.0),2.3*LW],[-q(2.0),3.3*LW],[-q(.8),3.9*LW],[0,4.05*LW],[.15,4.0*LW],[.3,3.5*LW],[.44,3.25*LW],[.447,3.25*LW],[.5,3.2*LW],[.507,2.8*LW],[.75,2.7*LW],[1,2.5*LW],[1.1,2.1*LW]],
-      (uu)=>uu<.444?C.j:uu<.503?C.t:C.und,18,fw);
+      (uu,cs,sn)=>uu<.444?shd(C.j,(1-.06*Math.max(0,Math.sin(uu*48))*Math.max(0,-cs))*(1-.08*Math.max(0,(uu-.3)/.14)*(.5+.5*Math.cos(Math.atan2(sn,cs)*4)))):uu<.503?C.t:C.und,18,fw);   // 소매: 겨드랑이 쪽 주름 + 소매 끝 잔주름
     { const out=V3.nrm(V3.sub(a.sh,k.neck)), c=V3.add(V3.add(a.sh,V3.mul(an,.9)),V3.mul(out,-.7));   // 삼각근: 팔 방향으로 길쭉한 타원, 바깥쪽이 둥글게
       pfEll(M,c,sideA,sideB,an,3.85*LW,4.0*LW,4.4*LW,C.j,9,16); }
     { const nb=V3.add(k.neck,V3.mul(up,-1.2)), to=V3.sub(a.sh,nb), tl=V3.len(to)||1, A0=V3.add(nb,V3.mul(to,.18));   // 승모근: 목 아래에서 어깨까지 완만한 경사
       pfLimb(M,A0,a.sh,up,[[0,2.0,2.5],[.45,2.6,3.2],[.85,3.0,3.5],[1.0,2.7,3.2]],()=>C.j,14,fw); }
+    { const fa=V3.nrm(V3.sub(a.hd,a.el)), bd=V3.sub(an,fa), bl2=V3.len(bd); if(bl2>.25){ const eo=V3.mul(bd,1/bl2);   // v206 팔꿈치: 굽힐수록 뒤로 뾰족하게
+        pfEll(M,V3.add(a.el,V3.mul(eo,1.15*LW)),sideA,V3.nrm(V3.add(an,fa)),eo,1.9*LW,2.0*LW,1.5*LW*Math.min(1,bl2),C.und,6,10); } }
     pfLimb(M,a.el,a.hd,sideA,[[-.12,2.3*LW],[0,2.6*LW],[.12,2.75*LW,2.65*LW],[.3,2.6*LW,2.45*LW],[.5,2.3*LW,2.15*LW],[.7,2.0*LW,1.85*LW],[.9,1.8*LW,1.55*LW],[1,1.75*LW,1.5*LW]],()=>C.und,18);   // 아래팔: 고리와 둘레 분할을 늘려 매끄럽게
   };
   arm(k.aT,true); arm(k.aG,false);
@@ -7405,7 +7482,7 @@ function pfBuild3D(P,teamId,angOv){
   const gl=pf3dInit(); if(!gl) return null;
   const sv=document.getElementById('pitchSvg'), cv=PF3D.cv, U=PF3D.U, AT=PF3D.A;
   const gm0=fvGeom(), W=gm0.W, H=gm0.H; if(!W) return null;
-  const dpr=Math.min(2,window.devicePixelRatio||1); if(cv.width!==Math.round(W*dpr)||cv.height!==Math.round(H*dpr)){ cv.width=Math.round(W*dpr); cv.height=Math.round(H*dpr); }
+  const dpr=gqDpr(2); if(cv.width!==Math.round(W*dpr)||cv.height!==Math.round(H*dpr)){ cv.width=Math.round(W*dpr); cv.height=Math.round(H*dpr); }
   cv.style.display='';
   while(sv.firstChild) sv.removeChild(sv.firstChild);
   const pf=pitcherProfile(P), fm=formOf(P,pf), mir=handOf(P)==='L'?-1:1, u=uniOf(teamId);
@@ -8002,7 +8079,8 @@ function batGear(M,k,X,up){
     if(tape&&u<.2) return C.tape;                                                  // 그립 테이프
     if(u>.6&&u<.66&&cs>.35) return C.logo;                                         // 상표
     if(st==='black') return dark; if(st==='two') return u>.5?dark:wood;
-    const gr=Math.sin(u*90+sn*3)*.5+.5; return gr>.86?C.grain:wood; }});            // 나뭇결
+    const gr=Math.sin(u*90+sn*3)*.5+.5, g2=Math.max(0,(gr-.72)/.28), mx=(a,b,t)=>[a[0]+(b[0]-a[0])*t,a[1]+(b[1]-a[1])*t,a[2]+(b[2]-a[2])*t,1];
+    const bar=u>.8?1+.06*(u-.8)/.2:1; const w0=mx(wood,C.grain,g2*g2); return [Math.min(1,w0[0]*bar),Math.min(1,w0[1]*bar),Math.min(1,w0[2]*bar),1]; }});   // 나뭇결 (v205: 부드럽게 섞음, 배럴 끝은 광택으로 조금 밝게)
 }
 const BT3D={on:true,gl:null,cv:null,fail:false};
 function bt3dInit(){
@@ -8036,7 +8114,7 @@ function btBuild(B,teamId){
   try{ const f3=scBatter(B,teamId); if(f3) return f3; }catch(e){ console.error(e); } if(SC.S.gl) return null;
   const gl=bt3dInit(); if(!gl) return null;
   const cv=BT3D.cv, gm=fvGeom(), W=gm.W, H=gm.H; if(!W) return null;
-  const dpr=Math.min(2,window.devicePixelRatio||1); if(cv.width!==Math.round(W*dpr)||cv.height!==Math.round(H*dpr)){ cv.width=Math.round(W*dpr); cv.height=Math.round(H*dpr); }
+  const dpr=gqDpr(2); if(cv.width!==Math.round(W*dpr)||cv.height!==Math.round(H*dpr)){ cv.width=Math.round(W*dpr); cv.height=Math.round(H*dpr); }
   cv.style.display='';
   const L0=btLook(B,teamId,gl,BT3D), bp=L0.bp, side=L0.side, mir=L0.mir, X=L0.X;
   // 화면 배치: 발은 화면 아래, 키는 화면 높이의 약 90%. 존 옆(우타자 왼쪽)에 섬
@@ -8110,7 +8188,7 @@ function btSet(B,force){ try{ if(btSkip()||!B){ btHide(); return; }
 function btLoop(){ if(BT.raf) return; const step=now=>{ BT.raf=0; if(!BT.f||!BT.keys) return;
     if(BT.mode==='idle'){   // 대기: 30fps, 화면이 안 보이거나 하이라이트 중이면 쉼
       if(document.hidden||HL.busy||!(SC.cvG||BT3D.cv)||(SC.cvG||BT3D.cv).offsetParent===null){ setTimeout(()=>{ if(BT.mode==='idle'&&!BT.raf&&now<BT.until) btLoop(); },400); return; }
-      if(BT.lastIdle&&now-BT.lastIdle<30){ BT.raf=requestAnimationFrame(step); return; } BT.lastIdle=now; }
+      if(BT.lastIdle&&now-BT.lastIdle<GQ_SET[gqLvl()].idle){ BT.raf=requestAnimationFrame(step); return; } BT.lastIdle=now; }
     const refOn=BT.mode==='swing'&&BT.ref, PL=BT.pipe&&BT.pipe.f===BT.f?BT.pipe:null; let o=refOn?BT.ref.pose(now):bPose(BT.keys,now);   // 스윙 중에는 타격 리파인 후처리
     if(BT.mode==='wait'||BT.mode==='idle'){ const bp=BT.f.bp, w=bp.waggle, ph=now/1000*Math.PI*2*(0.9+w*.6), fade=BT.calm?BT.calm(now):1;
       if(bp.mill) o=Object.assign({},o,{be:o.be+((now/1000*1.6)%1)*360*fade});                                      // 물레방아: 배트를 세로로 빙빙
@@ -8185,12 +8263,8 @@ function hlCam(eye,target,fov,W,H,mir){ const f=V3.nrm(V3.sub(target,eye)); let 
   return {e:eye,f,d,r,F,W,H,cx:W/2,cy:H/2,mir,
     v(p){ const q=V3.sub(p,eye); return [V3.dot(q,r)*mir,V3.dot(q,d),V3.dot(q,f)]; },
     p(p){ const q=this.v(p); return q[2]>1?[this.cx+this.F*q[0]/q[2],this.cy+this.F*q[1]/q[2],q[2]]:null; }}; }
-function hlGLDraw(S,cam,list){ const gl=S.gl, U=S.U, AT=S.A, cv=S.cv;
-  const upload=Mx=>{ if(!Mx||!Mx.i.length) return; const vb=new Float32Array(Mx.v), ib=(Mx.n>65535&&S.u32)?new Uint32Array(Mx.i):new Uint16Array(Mx.i);
-    gl.bindBuffer(gl.ARRAY_BUFFER,S.vb); gl.bufferData(gl.ARRAY_BUFFER,vb,gl.STREAM_DRAW); gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER,S.ib); gl.bufferData(gl.ELEMENT_ARRAY_BUFFER,ib,gl.STREAM_DRAW);
-    const st=48; gl.enableVertexAttribArray(AT.P); gl.vertexAttribPointer(AT.P,3,gl.FLOAT,false,st,0); gl.enableVertexAttribArray(AT.N); gl.vertexAttribPointer(AT.N,3,gl.FLOAT,false,st,12);
-    gl.enableVertexAttribArray(AT.C); gl.vertexAttribPointer(AT.C,4,gl.FLOAT,false,st,24); gl.enableVertexAttribArray(AT.UV); gl.vertexAttribPointer(AT.UV,2,gl.FLOAT,false,st,40);
-    gl.drawElements(gl.TRIANGLES,Mx.i.length,ib instanceof Uint32Array?gl.UNSIGNED_INT:gl.UNSIGNED_SHORT,0); };
+function hlGLDraw(S,cam,list){ const gl=S.gl, U=S.U, AT=S.A, cv=S.cv; PERF.rend++; gqTick();
+  let seq=0; const upload=Mx=>{ if(!Mx||!Mx.i.length) return; gluDraw(gl,AT,gluMesh(S,'h'+(seq++),Mx)); };   // 목록 순서대로 자리를 써서, 같은 선수는 같은 자리를 다시 씀
   gl.viewport(0,0,cv.width,cv.height); gl.clearColor(0,0,0,0); gl.clearDepth(1); gl.clear(gl.COLOR_BUFFER_BIT|gl.DEPTH_BUFFER_BIT);
   const n=4, fa=40000, rM=V3.mul(cam.r,cam.mir);
   gl.uniform3fv(U.uR,rM); gl.uniform3fv(U.uD,cam.d); gl.uniform3fv(U.uF,cam.f); gl.uniform3fv(U.uE,cam.e);
@@ -8207,6 +8281,8 @@ function hlBatMesh(M,kb,d,X){ const C=X.C, L=43.5, s1=V3.nrm(Math.abs(d[1])>.95?
   pfLoft(M,rings,{segs:12,col:i=>{ const u=rings[i].u; return u<.03?C.knob:(X.batStyle==='black'||(X.batStyle==='two'&&u>.5))?C.wood2:C.wood; }}); }
 
 /* ---- 구장 (2D 캔버스에 원근으로) ---- */
+/* 경기 시간대 (v205): 자동이면 이 기기 시각 18시~6시는 야간 경기 */
+function stNight(){ let v='auto'; try{ v=localStorage.getItem('weus_tod')||'auto'; }catch(e){} if(v==='day') return false; if(v==='night') return true; const h=new Date().getHours(); return h>=18||h<6; }
 function hlStadium(homeTeam){ const M=HL_M, pc=HL_PC, P=[], T=[];
   const at=(th,d)=>[pc[0]+Math.sin(th)*d*M, pc[2]-Math.cos(th)*d*M];
   const u1=[Math.SQRT1_2,-Math.SQRT1_2], u3=[-Math.SQRT1_2,-Math.SQRT1_2], n1=[Math.SQRT1_2,Math.SQRT1_2], n3=[-Math.SQRT1_2,Math.SQRT1_2], OFF=17;
@@ -8231,7 +8307,10 @@ function hlStadium(homeTeam){ const M=HL_M, pc=HL_PC, P=[], T=[];
   const rc=[0,1].map(tier=>P.map((_,i)=>{ const n=tier?9:12, sec=Math.floor(i/4); return Array.from({length:n},(_,r)=>{
     if(i%4===0) return aisle; const h=Math.abs(Math.sin(sec*12.9898+r*78.233+tier*3.71)*43758.5453)%1, h2=Math.abs(Math.sin(i*4.13+r*9.71+tier)*9631.7)%1;
     const c=h2<.78?crowd[Math.floor((h*.7+h2*.3)*crowd.length)%crowd.length]:seat; return r%2?mixc(c,'#15171d',.12):c; }); }));
-  return {P,T,NR,N,pat,patImg:pat,u,clouds,cols,rc}; }
+  // 광고판 색 (2칸씩 한 장)
+  const ads=['#1e5aa8','#e8e8ef','#d9b13a','#b42323','#2c6a50','#111827','#f08a24','#5b2a86'];
+  const adc=P.map((_,i)=>ads[Math.floor(Math.abs(Math.sin(Math.floor(i/2)*91.7)*1e4))%ads.length]);
+  return {P,T,NR,N,pat,patImg:pat,u,clouds,cols,rc,adc,night:stNight()}; }
 /* 3D 점 여러 개로 된 면을 화면에 (카메라 앞쪽만 잘라서) */
 function hlPoly(ctx,cam,pts,fill,stroke){ const NEAR=6, cs=pts.map(p=>cam.v(p)), out=[];
   for(let i=0;i<cs.length;i++){ const a=cs[i], b=cs[(i+1)%cs.length], ai=a[2]>=NEAR, bi=b[2]>=NEAR; if(ai) out.push(a);
@@ -8273,27 +8352,30 @@ function sbCanvas(){ const now=Date.now(); if(SB.cv&&now-SB.at<1000) return SB.c
 function hlDrawBG(ctx,cam,ST,tm){ const W=cam.W, H=cam.H, M=HL_M, pc=HL_PC;
   // 지평선 높이 (카메라가 기울지 않으니 수평선)
   const hf=V3.nrm([cam.f[0],0,cam.f[2]]); const far=V3.add(cam.e,V3.mul(hf,1e6)), hv=cam.v(far); const yh=hv[2]>1?cam.cy+cam.F*hv[1]/hv[2]:(cam.f[1]>0?-1e4:1e4);
-  const sky=ctx.createLinearGradient(0,Math.min(yh,H)-H*1.2,0,Math.min(yh,H)); sky.addColorStop(0,'#1f4fb8'); sky.addColorStop(.6,'#3d78d6'); sky.addColorStop(1,'#9cc3ee');
+  const NI=!!ST.night, sky=ctx.createLinearGradient(0,Math.min(yh,H)-H*1.2,0,Math.min(yh,H));
+  if(NI){ sky.addColorStop(0,'#03061a'); sky.addColorStop(.62,'#0b1a42'); sky.addColorStop(1,'#2a3f78'); } else { sky.addColorStop(0,'#1f4fb8'); sky.addColorStop(.6,'#3d78d6'); sky.addColorStop(1,'#9cc3ee'); }
   ctx.fillStyle=sky; ctx.fillRect(0,0,W,H);
   // 구름 (아주 먼 곳: 카메라 방향만 반영)
   ST.clouds.forEach(c=>{ const dir=[Math.sin(c.az)*Math.cos(c.el),-Math.sin(c.el),-Math.cos(c.az)*Math.cos(c.el)], q=[V3.dot(dir,cam.r)*cam.mir,V3.dot(dir,cam.d),V3.dot(dir,cam.f)]; if(q[2]<.05) return;
     const sx=cam.cx+cam.F*q[0]/q[2], sy=cam.cy+cam.F*q[1]/q[2], R=cam.F*c.s/q[2]; if(sx<-R*3||sx>W+R*3||sy<-R*2||sy>yh+R) return;
     for(let k=0;k<c.n;k++){ const ox=(k-(c.n-1)/2)*R*.7+Math.sin(c.seed*40+k)*R*.3, oy=Math.cos(c.seed*30+k*2)*R*.18, rr=R*(.55+.35*Math.abs(Math.sin(c.seed*90+k)));
-      const g=ctx.createRadialGradient(sx+ox,sy+oy,0,sx+ox,sy+oy,rr); g.addColorStop(0,'rgba(255,255,255,.85)'); g.addColorStop(.55,'rgba(255,255,255,.45)'); g.addColorStop(1,'rgba(255,255,255,0)');
+      const g=ctx.createRadialGradient(sx+ox,sy+oy,0,sx+ox,sy+oy,rr), ca=NI?.22:.85; g.addColorStop(0,`rgba(${NI?'150,165,210':'255,255,255'},${ca})`); g.addColorStop(.55,`rgba(${NI?'150,165,210':'255,255,255'},${ca*.53})`); g.addColorStop(1,'rgba(255,255,255,0)');
       ctx.fillStyle=g; ctx.beginPath(); ctx.ellipse(sx+ox,sy+oy,rr*1.4,rr*.75,0,0,Math.PI*2); ctx.fill(); } });
   // 땅 (잔디)
   if(yh<H){ ctx.fillStyle='#3e8a3a'; ctx.fillRect(0,Math.max(0,yh),W,H-Math.max(0,yh)); }
   const g3=(x,z)=>[x,0,z], at=(th,d,y)=>[pc[0]+Math.sin(th)*d*M,y||0,pc[2]-Math.cos(th)*d*M];
   // 잔디 무늬 (줄)
   for(let k=-14;k<14;k+=2){ const x0=pc[0]+k*7*M, x1=x0+7*M; hlPoly(ctx,cam,[g3(x0,pc[2]-30*M),g3(x1,pc[2]-30*M),g3(x1,pc[2]-125*M),g3(x0,pc[2]-125*M)],'#47973f'); }
+  for(let k=0;k<14;k++){ const z0=pc[2]-(30+k*7)*M, z1=z0-3.5*M; hlPoly(ctx,cam,[g3(pc[0]-98*M,z0),g3(pc[0]+98*M,z0),g3(pc[0]+98*M,z1),g3(pc[0]-98*M,z1)],'rgba(255,255,255,.035)'); }   // v205: 가로로도 깎아 체크 무늬
+  if(yh<H){ const vg=ctx.createLinearGradient(0,Math.max(0,yh),0,H); vg.addColorStop(0,NI?'rgba(10,20,40,.18)':'rgba(30,60,90,.10)'); vg.addColorStop(.35,'rgba(0,0,0,0)'); ctx.fillStyle=vg; ctx.fillRect(0,Math.max(0,yh),W,H-Math.max(0,yh)); }   // 먼 잔디는 공기 원근으로 살짝 흐리게
   // 워닝 트랙
   { const o=[], i2=[]; for(let i=0;i<=30;i++){ const th=(-45+90*i/30)*Math.PI/180, R=98+24*Math.cos(2*th); o.push(at(th,R)); i2.push(at(th,R-4.6)); } hlPoly(ctx,cam,o.concat(i2.reverse()),'#a8714c'); }
   // 내야 흙 (부채꼴) + 내야 잔디
   const Mc=[pc[0],0,pc[2]-18.44*M], u1=[Math.SQRT1_2,0,-Math.SQRT1_2], u3=[-Math.SQRT1_2,0,-Math.SQRT1_2], P0=[pc[0],0,pc[2]];
   { const A=V3.add(P0,V3.mul(u3,38.9*M)), B=V3.add(P0,V3.mul(u1,38.9*M)), a0=Math.atan2(A[2]-Mc[2],A[0]-Mc[0]), a1=Math.atan2(B[2]-Mc[2],B[0]-Mc[0]), pts=[P0,A];
-    for(let i=1;i<24;i++){ const a=a0+(a1-a0)*i/24; pts.push([Mc[0]+Math.cos(a)*29*M,0,Mc[2]+Math.sin(a)*29*M]); } pts.push(B); hlPoly(ctx,cam,pts,'#b97a52'); }
+    for(let i=1;i<24;i++){ const a=a0+(a1-a0)*i/24; pts.push([Mc[0]+Math.cos(a)*29*M,0,Mc[2]+Math.sin(a)*29*M]); } pts.push(B); ctx.lineWidth=2; hlPoly(ctx,cam,pts,'#b97a52','rgba(70,45,25,.35)'); ctx.lineWidth=1; }   // v205: 흙과 잔디 경계를 또렷하게
   { const B1=V3.add(P0,V3.mul(u1,27.43*M)), B3=V3.add(P0,V3.mul(u3,27.43*M)), B2=[pc[0],0,pc[2]-38.8*M], C0=[pc[0],0,pc[2]-19.4*M], L=(p,k)=>V3.add(p,V3.mul(V3.sub(C0,p),k));
-    hlPoly(ctx,cam,[L(P0,.2),L(B1,.13),L(B2,.13),L(B3,.13)],'#3f8f3b');
+    ctx.lineWidth=1.5; hlPoly(ctx,cam,[L(P0,.2),L(B1,.13),L(B2,.13),L(B3,.13)],'#3f8f3b','rgba(150,205,120,.35)'); ctx.lineWidth=1;
     const circ=(c,r,col,n)=>{ const ps=[]; for(let i=0;i<(n||22);i++){ const a=i/(n||22)*Math.PI*2; ps.push([c[0]+Math.cos(a)*r,0,c[2]+Math.sin(a)*r]); } hlPoly(ctx,cam,ps,col); };
     circ(Mc,2.74*M,'#b4744d'); hlPoly(ctx,cam,[[Mc[0]-.3*M,0,Mc[2]-.08*M],[Mc[0]+.3*M,0,Mc[2]-.08*M],[Mc[0]+.3*M,0,Mc[2]+.08*M],[Mc[0]-.3*M,0,Mc[2]+.08*M]],'#f3f1ea');
     circ(P0,4*M,'#b97a52',28);
@@ -8315,23 +8397,28 @@ function hlDrawBG(ctx,cam,ST,tm){ const W=cam.W, H=cam.H, M=HL_M, pc=HL_PC;
     const q=(oA,hA,oB,hB,oA2,hA2,oB2,hB2,col,st)=>hlPoly(ctx,cam,[pt(A,nA,oA,hA),pt(B,nB,oB,hB),pt(B,nB,oB2,hB2),pt(A,nA,oA2,hA2)],col,st);
     // 관중석: 점 무늬 대신 원근이 맞는 좌석 줄. 줄마다 관중 색 덩어리 (먼 줄부터)
     const rows=(oA,hA,oB,hB,oA2,hA2,oB2,hB2,tier)=>{ const C=ST.rc[tier][i], n=C.length, L=(x,y,u)=>x+(y-x)*u; ctx.lineWidth=.8;
-      for(let r=n-1;r>=0;r--){ const a=r/n, b=(r+1)/n; q(L(oA,oA2,a),L(hA,hA2,a),L(oB,oB2,a),L(hB,hB2,a),L(oA,oA2,b),L(hA,hA2,b),L(oB,oB2,b),L(hB,hB2,b),C[r],C[r]); } };
+      for(let r=n-1;r>=0;r--){ const a=r/n, b=(r+1)/n; q(L(oA,oA2,a),L(hA,hA2,a),L(oB,oB2,a),L(hB,hB2,a),L(oA,oA2,b),L(hA,hA2,b),L(oB,oB2,b),L(hB,hB2,b),C[r],C[r]);
+        if(ST.detail&&i%4){ const pa0=cam.p(pt(A,nA,L(oA,oA2,a),L(hA,hA2,a))), pb0=cam.p(pt(B,nB,L(oB,oB2,a),L(hB,hB2,a))), pa1=cam.p(pt(A,nA,L(oA,oA2,b),L(hA,hA2,b)));   // 관중 머리·옷 점 (정적 배경만)
+          if(pa0&&pb0&&pa1){ const rh=Math.hypot(pa1[0]-pa0[0],pa1[1]-pa0[1]), rw=Math.hypot(pb0[0]-pa0[0],pb0[1]-pa0[1]); if(rh>1.6&&rh<7.5&&rw>2){ const nn=Math.min(14,Math.floor(rw/(rh*1.1))); let sd=(i*131+r*17+tier*7)|0;
+            for(let t2=0;t2<nn;t2++){ sd=(sd*16807+11)%2147483647; const fx=(t2+.2+(sd%100)/160)/nn, fy=.25+(sd%37)/90, x0=pa0[0]+(pb0[0]-pa0[0])*fx+(pa1[0]-pa0[0])*fy, y0=pa0[1]+(pb0[1]-pa0[1])*fx+(pa1[1]-pa0[1])*fy;
+              if(sd%5===0) continue; ctx.fillStyle=ST.cols[sd%ST.cols.length]; ctx.fillRect(x0,y0,Math.max(1,rh*.42),Math.max(1,rh*.36)); ctx.fillStyle=(sd%3)?'rgba(225,185,150,.75)':'rgba(40,30,25,.8)'; ctx.fillRect(x0+rh*.06,y0-rh*.26,Math.max(1,rh*.3),Math.max(1,rh*.26)); } } } } } };
     // 지붕 테두리, 2층, 전광 띠, 1층, 담장 순 (바깥 -> 안)
     q(pa.u[0],pa.u[1],pb.u[0],pb.u[1],pa.rim[0],pa.rim[1],pb.rim[0],pb.rim[1],'#2b2d36');
     rows(pa.l[2],pa.r[1],pb.l[2],pb.r[1],pa.u[0],pa.u[1],pb.u[0],pb.u[1],1);
     const lit=(i%9<5)?'#7b4dff':'#5b33d8'; ctx.lineWidth=.8; q(pa.l[2],pa.r[0],pb.l[2],pb.r[0],pa.l[2],pa.r[1],pb.l[2],pb.r[1],lit);
     rows(0,pa.w+.2,0,pb.w+.2,pa.l[2],pa.l[1],pb.l[2],pb.l[1],0);
     q(0,0,0,0,0,pa.w,0,pb.w,ST.T[i]==='f'?'#1d4a3b':'#20263a');
-    q(0,pa.w*.55,0,pb.w*.55,0,pa.w*.9,0,pb.w*.9,ST.T[i]==='f'?((i%5)?'#2c6a50':'#d9b13a'):((i%4)?'#3b2a8a':'#e8e8ef'));
+    q(0,pa.w*.55,0,pb.w*.55,0,pa.w*.9,0,pb.w*.9,ST.T[i]==='f'?(ST.adc?ST.adc[i]:((i%5)?'#2c6a50':'#d9b13a')):((i%4)?'#3b2a8a':'#e8e8ef'));   // v205: 담장 광고판 색을 여러 가지로
     if(ST.T[i]==='f') q(0,pa.w,0,pb.w,0,pa.w+.15,0,pb.w+.15,'#e7c43a'); });
   ctx.restore();
+  if(NI){ const yb=Math.min(H,Math.max(0,yh)+H*.08), ov=ctx.createLinearGradient(0,0,0,yb); ov.addColorStop(0,'rgba(4,8,26,.42)'); ov.addColorStop(.75,'rgba(4,8,26,.22)'); ov.addColorStop(1,'rgba(4,8,26,0)'); ctx.fillStyle=ov; ctx.fillRect(0,0,W,yb); }   // v205: 야간에는 관중석·하늘이 어둡고 그라운드만 조명을 받음
   // 가운데 전광판
   { const th=0, R=98+24, c=at(th,R+2.2,0), w=9*M, y0=-3.1*M, y1=-13*M, L=[c[0]-w,0,c[2]], Rr=[c[0]+w,0,c[2]];   // 가운데 담장 바로 뒤 (타자 시점에서 보이는 자리)
     hlPoly(ctx,cam,[[L[0]-.4*M,0,L[2]+.3*M],[Rr[0]+.4*M,0,Rr[2]+.3*M],[Rr[0]+.4*M,y1-.5*M,Rr[2]+.3*M],[L[0]-.4*M,y1-.5*M,L[2]+.3*M]],'#20232c');   // 틀
     hlPoly(ctx,cam,[[L[0],y0,L[2]],[Rr[0],y0,Rr[2]],[Rr[0],y1,Rr[2]],[L[0],y1,L[2]]],'#14161d');
     const sL=cam.mir<0?Rr:L, sR=cam.mir<0?L:Rr, sg=cam.mir<0?-1:1, a=cam.p([sL[0]+sg*M,y1+M,sL[2]-2]), b=cam.p([sR[0]-sg*M,y1+M,sR[2]-2]), d=cam.p([sL[0]+sg*M,y0-M,sL[2]-2]);
     if(a&&b&&d){ ctx.save(); ctx.setTransform(1,0,0,1,0,0); const dpr=ST.dpr||1; ctx.setTransform((b[0]-a[0])*dpr/100,(b[1]-a[1])*dpr/100,(d[0]-a[0])*dpr/40,(d[1]-a[1])*dpr/40,a[0]*dpr,a[1]*dpr);
-      ctx.drawImage(sbCanvas(),0,0,100,40);
+      ctx.drawImage(sbCanvas(),0,0,100,40); ctx.strokeStyle=NI?'rgba(140,200,255,.55)':'rgba(255,255,255,.25)'; ctx.lineWidth=.6; ctx.strokeRect(.3,.3,99.4,39.4);   // v205: 전광판 테두리
       if(tm>3300){ ctx.fillStyle='rgba(5,7,13,.86)'; ctx.fillRect(20,12,60,16); ctx.fillStyle='#ffd23f'; ctx.font='900 11px "Black Han Sans",sans-serif'; ctx.textAlign='center'; ctx.textBaseline='middle'; ctx.fillText('HOME RUN!',50,20.5); }
       ctx.restore(); } }
   // 파울 폴
@@ -8339,7 +8426,8 @@ function hlDrawBG(ctx,cam,ST,tm){ const W=cam.W, H=cam.H, M=HL_M, pc=HL_PC;
   // 조명탑
   [-62,-30,30,62].forEach(dg=>{ const th=dg*Math.PI/180, R=98+24*Math.cos(2*Math.max(-Math.PI/4,Math.min(Math.PI/4,th))), b=at(th,R+(Math.abs(dg)>45?40:30),0), top=-48*M;
     hlPoly(ctx,cam,[[b[0]-.6*M,-20*M,b[2]],[b[0]+.6*M,-20*M,b[2]],[b[0]+.6*M,top,b[2]],[b[0]-.6*M,top,b[2]]],'#3a3d46');
-    hlPoly(ctx,cam,[[b[0]-5*M,top,b[2]],[b[0]+5*M,top,b[2]],[b[0]+5*M,top-5*M,b[2]],[b[0]-5*M,top-5*M,b[2]]],'#d7dce6'); });
+    hlPoly(ctx,cam,[[b[0]-5*M,top,b[2]],[b[0]+5*M,top,b[2]],[b[0]+5*M,top-5*M,b[2]],[b[0]-5*M,top-5*M,b[2]]],NI?'#fffbe8':'#d7dce6');
+    if(NI){ const q2=cam.p([b[0],top-2.5*M,b[2]]); if(q2){ const R2=Math.max(18,cam.F*14*M/q2[2]); const lg=ctx.createRadialGradient(q2[0],q2[1],0,q2[0],q2[1],R2); lg.addColorStop(0,'rgba(255,250,225,.85)'); lg.addColorStop(.25,'rgba(255,240,200,.35)'); lg.addColorStop(1,'rgba(255,240,200,0)'); ctx.fillStyle=lg; ctx.beginPath(); ctx.arc(q2[0],q2[1],R2,0,Math.PI*2); ctx.fill(); } } });   // v205: 야간 경기 조명
 }
 /* 우타자 월드 기준 타구 위치. 시간 tb(초) */
 function hlBall(F,tb){ if(tb<=0) return V3.add(F.c,[0,0,tb*2200]);   // 맞기 전: 투수 쪽에서 날아옴 (약 140km/h)
@@ -8374,7 +8462,7 @@ function hlPlay(info,done){
     <div class="hl-ban"><div class="t">HOME RUN</div><div class="s"></div></div><div class="hl-cap"><b>[중계]</b><span></span></div><div class="hl-flash"></div>`;
   document.body.appendChild(wrap);
   try{
-  const VP=hlViewport(wrap), W=VP.W, H=VP.H, dpr=Math.min(1.75,window.devicePixelRatio||1);
+  const VP=hlViewport(wrap), W=VP.W, H=VP.H, dpr=gqDpr(1.75);
   const [cvB,cvG,cvF]=wrap.querySelectorAll('canvas'); [cvB,cvG,cvF].forEach(c=>{ c.width=Math.round(W*dpr); c.height=Math.round(H*dpr); });
   const cb=cvB.getContext('2d'), cf=cvF.getContext('2d');
   const S={}; const gl=hlGLSetup(S,cvG); glH=gl;
@@ -8641,7 +8729,7 @@ function hlWrap(tag,banCls){ const wrap=document.createElement('div'); wrap.id='
     <div class="hl-tag"><b>REPLAY</b><span>${tag}</span></div><button class="hl-skip" type="button">건너뛰기 &gt;</button><div class="hl-side"></div>
     <div class="hl-ban ${banCls||''}"><div class="t"></div><div class="s"></div></div><div class="hl-cap"><b>[중계]</b><span></span></div><div class="hl-flash"></div><div class="hl-mark">REPLAY</div>`;
   document.body.appendChild(wrap);
-  const VP=hlViewport(wrap), W=VP.W, H=VP.H, dpr=Math.min(1.75,window.devicePixelRatio||1);
+  const VP=hlViewport(wrap), W=VP.W, H=VP.H, dpr=gqDpr(1.75);
   const [cvB,cvG,cvF]=wrap.querySelectorAll('canvas'); [cvB,cvG,cvF].forEach(c=>{ c.width=Math.round(W*dpr); c.height=Math.round(H*dpr); });
   const S={}, gl=hlGLSetup(S,cvG);
   return {wrap,W,H,dpr,cb:cvB.getContext('2d'),cf:cvF.getContext('2d'),S,gl,cap:wrap.querySelector('.hl-cap span'),ban:wrap.querySelector('.hl-ban'),flash:wrap.querySelector('.hl-flash'),side:wrap.querySelector('.hl-side')}; }
@@ -8837,24 +8925,22 @@ function scInit(){ if(SC.fail||!PF3D.on) return false; const fv=document.getElem
   const b=document.createElement('canvas'); b.id='scBg'; b.className='scbg'; const g=document.createElement('canvas'); g.id='scGl'; g.className='pfig';
   const img=fv.querySelector('.fbg'); fv.insertBefore(b,img?img.nextSibling:fv.firstChild); fv.insertBefore(g,sv);
   const gl=hlGLSetup(SC.S,g); if(!gl){ SC.fail=true; b.remove(); g.remove(); return false; }
-  g.addEventListener('webglcontextlost',e=>{ e.preventDefault(); SC.fail=true; SC.S.gl=null; try{ g.remove(); b.remove(); }catch(_){} fv.classList.remove('sc3d'); document.body.classList.remove('pitview'); },false);
+  g.addEventListener('webglcontextlost',e=>{ e.preventDefault(); SC.fail=true; SC.S.gl=null; try{ g.remove(); b.remove(); }catch(_){} fv.classList.remove('sc3d'); document.body.classList.remove('pitview');
+    SC.lost=(SC.lost||0)+1; if(SC.lost<=3) setTimeout(()=>{ SC.fail=false; SC.S={}; SC.act={}; SC.stat=[]; SC.key=''; SC.statKey=''; SC.cvG=SC.cvB=null; try{ if(screens.match&&screens.match.classList.contains('active')){ scSync(); scRequest(); } }catch(_){} },1500); },false);   // v204: 경기장 3D 자동 복구
   SC.cvB=b; SC.cvG=g; SC.act={}; SC.stat=[]; SC.key=''; SC.statKey=''; SC.texP=SC.texB=SC.texF=SC.texU=null; fv.classList.add('sc3d'); return true; }
 function scCam(W,H,view){ const PC=HL_PC, M=HL_M, mz=PC[2]-18.44*M;
   if(view==='pit') return hlCam([PC[0]-295,-140,mz-2060],[PC[0]+27,-52,PC[2]],5.96,W,H,1);   // 투수 뒤 (중견수 쪽 망원): 투수는 왼쪽 아래, 홈은 가운데 오른쪽
   return hlCam([PC[0],-95,700],[PC[0],-40,mz],16,W,H,1); }                                    // 홈 뒤 망원: 타자 등, 투수, 그 뒤 가운데 담장 위 전광판                                    // 홈 뒤 망원: 타자 등이 크게, 투수는 존 바로 위
-function scPart(Mx,old,gl,S){ if(!Mx||!Mx.i.length){ if(old){ gl.deleteBuffer(old.vb); gl.deleteBuffer(old.ib); } return null; }
-  const p=old||{vb:gl.createBuffer(),ib:gl.createBuffer()}, big=Mx.n>65535&&S.u32, ib=big?new Uint32Array(Mx.i):new Uint16Array(Mx.i);
-  gl.bindBuffer(gl.ARRAY_BUFFER,p.vb); gl.bufferData(gl.ARRAY_BUFFER,new Float32Array(Mx.v),gl.DYNAMIC_DRAW); gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER,p.ib); gl.bufferData(gl.ELEMENT_ARRAY_BUFFER,ib,gl.DYNAMIC_DRAW);
-  p.n=Mx.i.length; p.type=big?gl.UNSIGNED_INT:gl.UNSIGNED_SHORT; return p; }
+function scPart(Mx,old,gl,S){ if(!Mx||!Mx.i.length){ if(old) gluFree(gl,old); return null; }
+  const p=(old&&old.pn)?old:gluSlot(gl); return gluUpload(gl,p,Mx,S.u32); }   // v204: 같은 선수 자리는 버퍼를 다시 쓰고, 바뀐 것만 올림
 function scBake(ms,old){ const gl=SC.S.gl, o=old||{}; return {m:scPart(ms.M,o.m,gl,SC.S),d:scPart(ms.MD,o.d,gl,SC.S),s:scPart(ms.MS2,o.s,gl,SC.S),tex:ms.tex}; }
-function scFree(a){ const gl=SC.S.gl; if(!a||!gl) return; ['m','d','s'].forEach(k=>{ if(a[k]){ gl.deleteBuffer(a[k].vb); gl.deleteBuffer(a[k].ib); } }); }
+function scFree(a){ const gl=SC.S.gl; if(!a||!gl) return; ['m','d','s'].forEach(k=>{ if(a[k]) gluFree(gl,a[k]); }); }
 function scSet(name,ms){ if(!SC.S.gl) return; if(!ms){ if(SC.act[name]){ scFree(SC.act[name]); SC.act[name]=null; scRequest(); } return; } SC.act[name]=scBake(ms,SC.act[name]); scRequest(); }
 function scRequest(){ if(!SC.raf) SC.raf=requestAnimationFrame(scRender); }
 function scRender(){ SC.raf=0; const S=SC.S, gl=S.gl, cam=SC.cam; if(!gl||!cam) return; const U=S.U, AT=S.A, cv=S.cv;
-  const draw=p=>{ if(!p) return; gl.bindBuffer(gl.ARRAY_BUFFER,p.vb); gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER,p.ib); const st=48;
-    gl.enableVertexAttribArray(AT.P); gl.vertexAttribPointer(AT.P,3,gl.FLOAT,false,st,0); gl.enableVertexAttribArray(AT.N); gl.vertexAttribPointer(AT.N,3,gl.FLOAT,false,st,12);
-    gl.enableVertexAttribArray(AT.C); gl.vertexAttribPointer(AT.C,4,gl.FLOAT,false,st,24); gl.enableVertexAttribArray(AT.UV); gl.vertexAttribPointer(AT.UV,2,gl.FLOAT,false,st,40);
-    gl.drawElements(gl.TRIANGLES,p.n,p.type,0); };
+  if(!cv||document.hidden||!(screens.match&&screens.match.classList.contains('active'))){ SC.dirty=true; return; }   // 안 보이는 화면은 그리지 않고, 다시 보일 때 그림
+  SC.dirty=false; PERF.rend++; gqTick();
+  const draw=p=>gluDraw(gl,AT,p);
   gl.viewport(0,0,cv.width,cv.height); gl.clearColor(0,0,0,0); gl.clearDepth(1); gl.clear(gl.COLOR_BUFFER_BIT|gl.DEPTH_BUFFER_BIT);
   const n=20, fa=60000;
   gl.uniform3fv(U.uR,V3.mul(cam.r,cam.mir)); gl.uniform3fv(U.uD,cam.d); gl.uniform3fv(U.uF,cam.f); gl.uniform3fv(U.uE,cam.e);
@@ -8871,11 +8957,11 @@ function scRender(){ SC.raf=0; const S=SC.S, gl=S.gl, cam=SC.cam; if(!gl||!cam) 
 function scGlow(P){ try{ if(!G||!P||!SC.S.gl) return; const same=(a,b)=>a&&b&&(a===b||(a.i!=null&&a.i===b.i&&a.name===b.name)); const k=same(P,curPitcher())?'P':same(P,curBatter())?'B':null; if(!k) return; SC.glow=SC.glow||{}; SC.glow[k]=performance.now()+1800; scRequest(); }catch(e){} }
 /* 화면 크기·시점이 바뀌면 카메라, 경기장 그림, 스트라이크 존 위치를 다시 잡음. 수비 팀이 바뀌면 수비수를 다시 세움 */
 function scSync(){ if(!scInit()) return false; const fv=document.getElementById('fieldView'), zb=document.getElementById('zoneBox'), W=fv.offsetWidth, H=fv.offsetHeight; if(!W||!H) return false;
-  const view=((G&&G.top)?'pit':'bat')===(SC.swap?'bat':'pit')?'pit':'bat', dpr=Math.min(2,window.devicePixelRatio||1), key=[W,H,view,dpr,state&&state.team].join('|');
+  const view=((G&&G.top)?'pit':'bat')===(SC.swap?'bat':'pit')?'pit':'bat', dpr=gqDpr(2), key=[W,H,view,dpr,state&&state.team].join('|');
   if(key!==SC.key){ SC.key=key; SC.view=view; SC.W=W; SC.H=H;
     [SC.cvB,SC.cvG].forEach(c=>{ c.width=Math.round(W*dpr); c.height=Math.round(H*dpr); });
     const cam=SC.cam=scCam(W,H,view), cb=SC.cvB.getContext('2d'); cb.setTransform(dpr,0,0,dpr,0,0);
-    const ST=hlStadium(state&&state.team); ST.dpr=dpr; hlDrawBG(cb,cam,ST,0);
+    const ST=hlStadium(state&&state.team); ST.dpr=dpr; ST.detail=gqLvl()!=='perf'; hlDrawBG(cb,cam,ST,0);
     const PC=HL_PC, a=cam.p([PC[0]-12.3,-61,PC[2]]), b=cam.p([PC[0]+12.3,-27,PC[2]]);
     if(a&&b&&zb){ const x0=Math.min(a[0],b[0]), x1=Math.max(a[0],b[0]), y0=Math.min(a[1],b[1]), y1=Math.max(a[1],b[1]);
       zb.style.left=((x0+x1)/2).toFixed(1)+'px'; zb.style.width=Math.max(8,x1-x0).toFixed(1)+'px'; zb.style.height=Math.max(10,y1-y0).toFixed(1)+'px'; zb.style.bottom=(H-y1).toFixed(1)+'px'; }
@@ -9289,7 +9375,7 @@ function fpPlay(info,done){ const M=HL_M, PC=HL_PC, gl=SC.S.gl, fv=document.getE
   const hidB=SC.act.B; scSet('B',null);
   // 공 그림 캔버스
   let fx=document.getElementById('scFx'); if(!fx){ fx=document.createElement('canvas'); fx.id='scFx'; fx.className='pfig'; fv.insertBefore(fx,document.getElementById('pitchSvg')); }
-  const W=SC.W, H=SC.H, dpr=Math.min(2,window.devicePixelRatio||1); fx.width=Math.round(W*dpr); fx.height=Math.round(H*dpr); fx.style.display=''; const cf=fx.getContext('2d'), cb=SC.cvB.getContext('2d');
+  const W=SC.W, H=SC.H, dpr=gqDpr(2); fx.width=Math.round(W*dpr); fx.height=Math.round(H*dpr); fx.style.display=''; const cf=fx.getContext('2d'), cb=SC.cvB.getContext('2d');
   const ST=hlStadium(state&&state.team); ST.dpr=dpr; const camHome=SC.cam;
   let foc=[PC[0],0,PC[2]-30*M], fov=40; const MK=[]; const CE={e:[PC[0],-18*M,PC[2]+18*M],t:[PC[0],-1*M,PC[2]-25*M]}; const t0=performance.now(); let caught=false, thrown=false, recvd=false;
   const finish=()=>{ if(fin) return; fin=true; FP.busy=false; fv.classList.remove('fping'); try{ ['F','R','X','Y','O0','O1','O2'].forEach(n=>scSet(n,null)); SC.stat.forEach(scFree); SC.stat=statSave; SC.cam=camHome; SC.key=''; SC.statKey=''; fx.style.display='none'; scSync(); scRequest(); }catch(e){ console.error(e); } try{ done&&done(); }catch(e){ console.error(e); } };
@@ -9435,7 +9521,7 @@ function rpPlay(o,done){ const M=HL_M, PC=HL_PC, gl=SC.S.gl, fv=document.getElem
   scSet('B',null); if(hidP) scSet('P',null);
   // 공 캔버스
   let fx=document.getElementById('scFx'); if(!fx){ fx=document.createElement('canvas'); fx.id='scFx'; fx.className='pfig'; fv.insertBefore(fx,document.getElementById('pitchSvg')); }
-  const W=SC.W, H=SC.H, dpr=Math.min(2,window.devicePixelRatio||1); fx.width=Math.round(W*dpr); fx.height=Math.round(H*dpr); fx.style.display=''; const cf=fx.getContext('2d'), cb=SC.cvB.getContext('2d');
+  const W=SC.W, H=SC.H, dpr=gqDpr(2); fx.width=Math.round(W*dpr); fx.height=Math.round(H*dpr); fx.style.display=''; const cf=fx.getContext('2d'), cb=SC.cvB.getContext('2d');
   const ST=hlStadium(state&&state.team); ST.dpr=dpr; const camHome=SC.cam; const tEnd=Math.max(tSafe,tTag)+1.25;
   // 카메라: 처음엔 던지는 선수와 베이스가 함께 보이게, 공이 날아가면 베이스 옆으로 다가가 태그 장면을 크게
   const mid=lerp(thrPos,tbase,.5), toB=flat(V3.sub(tbase,thrPos)), perp=[toB[2],0,-toB[0]], inSide=V3.dot(perp,V3.sub(home,mid))>0?perp:V3.mul(perp,-1);
@@ -10187,6 +10273,9 @@ function openSave(){
     <textarea id="saveCode" placeholder="저장 코드(예: WEUS-AB12-CD34) 또는 쿠폰 코드를 넣어 주세요" style="min-height:56px;"></textarea>
     <div class="row"><button class="btn" id="svExport" style="flex:1;">저장 코드 만들기</button><button class="btn" id="svImport" style="flex:1;">코드 입력 (불러오기 · 쿠폰)</button></div>
     <div class="save-row"><span>투수 그래픽</span><b><button class="btn ghost sm" id="sv3d">${PF3D.on&&!PF3D.fail?'3D 입체 (누르면 2D)':'2D 평면 (누르면 3D)'}</button></b></div>
+    <div class="save-row"><span>그래픽 품질</span><b><select id="svGQ" class="gq-sel">${[['auto','자동 (권장)'],['perf','성능 우선'],['bal','균형'],['high','고품질']].map(([v,t])=>`<option value="${v}" ${GQ.mode===v?'selected':''}>${t}${v==='auto'?' · 지금 '+GQ_SET[GQ.lvl].t:''}</option>`).join('')}</select></b></div>
+    <div class="save-row"><span>경기 시간대</span><b><select id="svTOD" class="gq-sel">${[['auto','자동 (18시~6시 야간)'],['day','항상 낮 경기'],['night','항상 야간 경기']].map(([v,t])=>`<option value="${v}" ${(()=>{ try{ return (localStorage.getItem('weus_tod')||'auto')===v; }catch(e){ return v==='auto'; } })()?'selected':''}>${t}</option>`).join('')}</select></b></div>
+    <div class="save-row"><span>성능 모니터 (개발자용)</span><b><button class="btn ghost sm" id="svPerf">${PERF.on?'켜짐 (누르면 끔)':'꺼짐 (누르면 켬)'}</button></b></div>
     <div class="save-row"><span>하이라이트</span><b><button class="btn ghost sm" id="svHL">${HL.mode==='all'?'홈런·삼진·호수비 (누르면 홈런만)':HL.mode==='hr'?'홈런만 (누르면 끔)':'꺼짐 (누르면 모두)'}</button></b></div>
     <button class="btn ghost" id="svLogout" style="margin-top:10px;">로그아웃 (첫 화면으로)</button>`;
   document.getElementById('svNow').onclick=async()=>{ await saveGame(); const c=await cloudFlush(); toast(c?'클라우드까지 저장했어요.':'이 기기에 저장했어요.'); openSave(); };
@@ -10199,6 +10288,9 @@ function openSave(){
       prepareState(o,ACC); await saveGame(); st.classList.remove('on'); go('home'); toast('저장 코드를 불러왔어요.'); }
     catch(e){ toast(e&&e.msg?e.msg:'올바른 저장 코드가 아니에요.'); } };
   document.getElementById('svHL').onclick=()=>{ HL.mode=HL.mode==='all'?'hr':HL.mode==='hr'?'off':'all'; HL.on=HL.mode!=='off'; LS.set('weus_hl',HL.mode==='all'?'1':HL.mode==='hr'?'2':'0'); toast(HL.mode==='all'?'홈런·삼진·호수비 하이라이트를 보여줘요.':HL.mode==='hr'?'홈런 하이라이트만 보여줘요.':'하이라이트를 건너뛰어요.'); openSave(); };
+  document.getElementById('svGQ').onchange=e=>{ gqSet(e.target.value); toast(`그래픽 품질: ${e.target.value==='auto'?'자동':GQ_SET[e.target.value].t}`); };
+  document.getElementById('svTOD').onchange=e=>{ try{ localStorage.setItem('weus_tod',e.target.value); }catch(_){} SC.key=''; toast(e.target.value==='night'?'야간 경기로 보여줘요.':e.target.value==='day'?'낮 경기로 보여줘요.':'시각에 맞춰 낮·밤을 바꿔요.'); };
+  document.getElementById('svPerf').onclick=()=>{ perfShow(!PERF.on); openSave(); };
   document.getElementById('sv3d').onclick=()=>{ PF3D.on=!(PF3D.on&&!PF3D.fail); if(PF3D.on) PF3D.fail=false; LS.set('weus_3d',PF3D.on?'1':'0'); toast(PF3D.on?'투수를 3D로 그려요.':'투수를 2D로 그려요.'); openSave(); };
   document.getElementById('svLogout').onclick=async()=>{ st.classList.remove('on'); await document.getElementById('btnLogout').onclick(); go('title'); };
   st.classList.add('on');
@@ -10228,5 +10320,6 @@ async function boot(){
 }
 boot();
 </script>
+<script>try{ if(PERF.on) perfShow(true); gqApply(); }catch(e){}</script>
 </body>
 </html>
